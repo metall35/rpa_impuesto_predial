@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Factura Predial</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="text"], input[type="email"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        button:disabled { background-color: #8cc399; cursor: not-allowed; }
+        
+        #loading { display: none; text-align: center; margin-top: 15px; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #28a745; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #message { margin-top: 15px; padding: 10px; border-radius: 4px; text-align: center; display: none; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Trámite Factura Predial</h2>
+    <form id="rpaForm">
+        <div class="form-group">
+            <label>Tipo de Búsqueda:</label>
+            <select name="search_type" id="search_type" required>
+                <option value="Ficha Catastral">Ficha Catastral</option>
+                <option value="Número Cuenta">Número Cuenta</option>
+                <option value="Propietario">Propietario</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Código o Número:</label>
+            <input type="text" name="search_value" id="search_value" required placeholder="Ej: 2242364">
+        </div>
+        <div class="form-group">
+            <label>Teléfono:</label>
+            <input type="text" name="phone" id="phone" required placeholder="Ej: 3001234567">
+        </div>
+        <div class="form-group">
+            <label>Correo Electrónico:</label>
+            <input type="email" name="email" id="email" required placeholder="correo@ejemplo.com">
+        </div>
+        <button type="submit" id="submitBtn">Generar e Imprimir Factura</button>
+    </form>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Procesando automatización en el servidor... Por favor espera.</p>
+    </div>
+
+    <div id="message"></div>
+</div>
+
+<script>
+document.getElementById('rpaForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Obtener elementos
+    const form = e.target;
+    const btn = document.getElementById('submitBtn');
+    const loading = document.getElementById('loading');
+    const messageDiv = document.getElementById('message');
+    
+    // Preparar UI para cargar
+    btn.disabled = true;
+    loading.style.display = 'block';
+    messageDiv.style.display = 'none';
+    
+    // Preparar datos
+    const formData = new FormData(form);
+    
+    try {
+        const response = await fetch('/api/generar_factura', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        messageDiv.style.display = 'block';
+        if (response.ok) {
+            messageDiv.className = 'success';
+            messageDiv.innerText = result.message;
+        } else {
+            messageDiv.className = 'error';
+            messageDiv.innerText = "Error: " + result.message;
+        }
+    } catch (error) {
+        messageDiv.style.display = 'block';
+        messageDiv.className = 'error';
+        messageDiv.innerText = "Error de conexión con el servidor.";
+    } finally {
+        // Restaurar UI
+        btn.disabled = false;
+        loading.style.display = 'none';
+    }
+});
+</script>
+
+</body>
+</html>
