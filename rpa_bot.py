@@ -19,8 +19,8 @@ def run_rpa(search_type, search_value, phone, email):
     # Si el portal exige reCAPTCHA, la ejecución en 'headless=True' fallará en la primera pantalla.
     
     with sync_playwright() as p:
-        # Para depuración local, podrías cambiar headless=False y resolver el captcha a mano.
-        browser = p.chromium.launch(headless=True)
+        # headless=False para que puedas ver y resolver el captcha manualmente
+        browser = p.chromium.launch(headless=False)
         context = browser.new_context(accept_downloads=True)
         page = context.new_page()
 
@@ -39,20 +39,31 @@ def run_rpa(search_type, search_value, phone, email):
 
             print("Intentando hacer clic en el reCAPTCHA...")
             try:
-                # El reCAPTCHA siempre está en un iframe
-                recaptcha_iframe = page.frame_locator("iframe[title*='reCAPTCHA']")
+                # El reCAPTCHA siempre está en un iframe. Usamos título exacto para evitar conflictos con el iframe del reto de imágenes
+                recaptcha_iframe = page.frame_locator("iframe[title='reCAPTCHA']")
                 recaptcha_iframe.locator(".recaptcha-checkbox-border").click(timeout=5000)
-                # Damos unos segundos para ver si nos da el check verde automático
-                time.sleep(3)
+                
+                print("=========================================================")
+                print("POR FAVOR RESUELVE EL CAPTCHA EN LA VENTANA ABIERTA.")
+                print("Tienes 2 minutos para hacerlo. El bot continuará solo.")
+                print("=========================================================")
+                
+                # Esperamos automáticamente hasta que el usuario resuelva el captcha y salga el check verde
+                recaptcha_iframe.locator(".recaptcha-checkbox-checked").wait_for(state="visible", timeout=120000)
+                print("¡Captcha resuelto detectado!")
+                
             except Exception as e:
-                print("No se pudo interactuar con el reCAPTCHA o no apareció:", e)
+                print("No se pudo interactuar con el reCAPTCHA o se acabó el tiempo:", e)
             
-            # 3. Clic en Buscar
+            # Como a veces la página borra el input al mover cosas, lo volvemos a llenar por seguridad
+            page.locator('input[type="text"]').first.fill(search_value)
+
+            # 3. Clic en Buscar automático una vez resuelto el captcha
+            print("Haciendo clic en Buscar...")
             page.get_by_role("button", name="Buscar").click()
 
             # Esperar a que cargue la siguiente página (Ventana de Atención)
-            # Cambiamos el texto a 'Ventanilla de Atención' para no confundir con las instrucciones
-            page.wait_for_selector("text='Ventanilla de Atención'", timeout=15000)
+            page.wait_for_selector("text=Información general del predio", timeout=20000)
             
             # 4. Pantalla de información general (Imagen 2) -> Clic en Generar Factura
             print("Cargó información del predio. Generando factura...")
@@ -63,7 +74,10 @@ def run_rpa(search_type, search_value, phone, email):
             # 5. Modal de Período de Generación (Imagen 3)
             # Como indicaste, dejamos el periodo predeterminado (el último) y solo damos "Generar Factura" de nuevo
             print("Modal de periodo detectado. Confirmando generación...")
-            page.wait_for_selector(".modal-content text='Generar Factura', .modal-dialog text='Generar Factura', text='Generar Factura'", timeout=15000)
+            # Esperamos a que aparezca el modal en la pantalla
+            page.locator(".modal-dialog, .modal-content").first.wait_for(state="visible", timeout=15000)
+            # Damos 2 segundos extra para que termine la animación de entrada del modal
+            time.sleep(2)
             # Al abrirse la modal, usualmente el último botón visible de generar factura es el de la modal
             page.locator("text='Generar Factura'").last.click()
 
