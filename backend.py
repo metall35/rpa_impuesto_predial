@@ -52,11 +52,6 @@ app.add_middleware(
 # Servir las facturas descargadas como archivos estáticos
 app.mount("/facturas", StaticFiles(directory="facturas_descargadas"), name="facturas")
 
-# Endpoint principal para servir el HTML
-@app.get("/", response_class=HTMLResponse)
-async def get_index():
-    with open("index.html", "r", encoding="utf-8") as f:
-        return f.read()
 
 # Endpoint de la API para iniciar el bot
 @app.post("/api/generar_factura")
@@ -90,6 +85,8 @@ def imprimir_factura(filename: str = Form(...)):
     except Exception as e:
         print(f"Error al imprimir en el servidor: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "message": f"Error al imprimir: {str(e)}"})
+# Servir los archivos compilados de React en la raíz como fallback
+app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn
