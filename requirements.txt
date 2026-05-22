@@ -3,3 +3,5 @@ uvicorn
 python-multipart
 playwright
 pywin32
+python-dotenv
+2captcha-python

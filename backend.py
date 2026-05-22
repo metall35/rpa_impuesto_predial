@@ -1,4 +1,4 @@
-from fastapi import FastAPI, BackgroundTasks, Form
+from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,9 +7,12 @@ import os
 # Importar el script RPA
 from rpa_bot import run_rpa
 
+# Asegurar que el directorio de facturas exista
+os.makedirs("facturas_descargadas", exist_ok=True)
+
 app = FastAPI(title="API RPA Impuesto Predial")
 
-# Configurar CORS (por si el index.html se sirve en otro puerto)
+# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,6 +20,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Servir las facturas descargadas como archivos estáticos
+app.mount("/facturas", StaticFiles(directory="facturas_descargadas"), name="facturas")
 
 # Endpoint principal para servir el HTML
 @app.get("/", response_class=HTMLResponse)
@@ -32,12 +38,6 @@ def generar_factura(
     phone: str = Form(...),
     email: str = Form(...)
 ):
-    # Dado que el bot usa Playwright sincronamente y toma varios segundos,
-    # es mejor ejecutarlo y devolver la respuesta cuando finalice,
-    # o usar un BackgroundTask si no queremos que el usuario espere la descarga.
-    # En este caso, como el usuario quiere un "Loading", esperaremos a que termine
-    # para darle un OK o Error.
-    
     print(f"Iniciando proceso RPA para {search_type}: {search_value}")
     
     # Ejecutamos el bot
@@ -48,7 +48,22 @@ def generar_factura(
     else:
         return JSONResponse(status_code=500, content=result)
 
+# Endpoint para imprimir el archivo desde el servidor
+@app.post("/api/imprimir_factura")
+def imprimir_factura(filename: str = Form(...)):
+    file_path = os.path.join("facturas_descargadas", filename)
+    if not os.path.exists(file_path):
+        return JSONResponse(status_code=404, content={"status": "error", "message": "El archivo no existe en el servidor."})
+    try:
+        # Usa la asociación predeterminada de Windows para imprimir el archivo PDF
+        os.startfile(file_path, "print")
+        print(f"Factura {filename} enviada a la cola de impresión del servidor.")
+        return {"status": "success", "message": f"Factura {filename} enviada a imprimir en el servidor."}
+    except Exception as e:
+        print(f"Error al imprimir en el servidor: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": f"Error al imprimir: {str(e)}"})
+
 if __name__ == "__main__":
     import uvicorn
-    # Para ejecutar este servidor: python backend.py
+    # Ejecutar servidor en puerto 8000
     uvicorn.run(app, host="0.0.0.0", port=8000)

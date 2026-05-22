@@ -3,3 +3,11 @@ __pycache__/
 *.pyc
 debug_pantalla_*.png
 factura_descargada*.pdf
+.env
+.vscode/
+facturas_descargadas/
+antes_de_imprimir.png
+despues_de_imprimir.png
+error_pantalla.png
+scratch_screenshot.png
+reintento_generar_factura.png
