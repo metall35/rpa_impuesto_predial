@@ -3,6 +3,8 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import asyncio
+import time
 
 # Importar el script RPA
 from rpa_bot import run_rpa
@@ -10,7 +12,33 @@ from rpa_bot import run_rpa
 # Asegurar que el directorio de facturas exista
 os.makedirs("facturas_descargadas", exist_ok=True)
 
+# Tarea en segundo plano para limpiar facturas antiguas (más de 30 minutos)
+async def cleanup_old_invoices():
+    print("Iniciando tarea en segundo plano de limpieza de facturas antiguas...")
+    while True:
+        try:
+            directory = "facturas_descargadas"
+            if os.path.exists(directory):
+                now = time.time()
+                for filename in os.listdir(directory):
+                    if filename.endswith(".pdf"):
+                        file_path = os.path.join(directory, filename)
+                        if os.path.isfile(file_path):
+                            file_age = now - os.path.getmtime(file_path)
+                            # 30 minutos = 1800 segundos
+                            if file_age > 1800:
+                                os.remove(file_path)
+                                print(f"Limpieza: Factura antigua eliminada: {filename} (antigüedad: {file_age:.1f}s)")
+        except Exception as e:
+            print(f"Error durante la limpieza de facturas: {e}")
+        # Ejecutar limpieza cada 2 minutos
+        await asyncio.sleep(120)
+
 app = FastAPI(title="API RPA Impuesto Predial")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(cleanup_old_invoices())
 
 # Configurar CORS
 app.add_middleware(
