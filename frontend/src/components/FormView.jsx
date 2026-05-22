@@ -97,7 +97,7 @@ export default function FormView({
         </div>
 
         <button type="submit" className="btn" id="submitBtn" disabled={status === 'loading'}>
-          <Play size={18} /> Iniciar Generación Automatizada
+          <Play size={18} /> Generar factura
         </button>
       </form>
 
