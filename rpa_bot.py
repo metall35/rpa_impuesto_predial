@@ -175,6 +175,28 @@ def run_rpa(search_type, search_value, phone, email):
                 # Reintentar hacer clic en el botón principal
                 btn_generar_principal.click()
                 page.locator("text=Imprimir Factura").wait_for(state="visible", timeout=15000)
+            # Esperar a que los datos de la factura se carguen dinámicamente desde el portal
+            print("Esperando a que se carguen los datos de la factura (números, vigencia, total)...")
+            factura_cargada = False
+            for attempt in range(40):
+                try:
+                    inputs = page.locator("input")
+                    count = inputs.count()
+                    for i in range(count):
+                        val = inputs.nth(i).input_value()
+                        # Si algún input contiene un signo de pesos ($) o un número de factura largo, ya cargó la info
+                        if "$" in val or (val.isdigit() and len(val) >= 5):
+                            print(f"¡Datos de factura detectados! Valor encontrado: {val}")
+                            factura_cargada = True
+                            break
+                except Exception as e:
+                    print(f"Error al leer inputs: {e}")
+                if factura_cargada:
+                    break
+                page.wait_for_timeout(500)
+            
+            if not factura_cargada:
+                print("Advertencia: No se detectaron datos de la factura cargados, procediendo de todos modos...")
             
             print("Llenando datos de contacto...")
             # Asegurar que los campos estén visibles antes de escribir
@@ -211,24 +233,33 @@ def run_rpa(search_type, search_value, phone, email):
             except:
                 pass
 
-            # Hacer clic en el botón de Imprimir Factura
-            print("Dando clic en el botón 'Imprimir Factura'...")
-            btn_imprimir.click()
-            
-            # Guardar captura después del clic para depuración
-            time.sleep(2)
-            try:
-                page.screenshot(path="despues_de_imprimir.png")
-            except:
-                pass
-
-            # Esperar a que aparezca la modal de Éxito con el botón de Descargar Recibo
+            # Esperar a que aparezca la modal de Éxito con el botón de Descargar Recibo (con reintentos de clic)
             print("Esperando a que aparezca el botón 'Descargar recibo' en el popup de Éxito...")
             btn_descargar = page.locator("text='Descargar recibo'").first
-            try:
-                btn_descargar.wait_for(state="visible", timeout=15000)
-            except Exception as e:
-                raise Exception(f"No apareció el popup de éxito con el botón 'Descargar recibo': {e}")
+            
+            exito_modal_visible = False
+            for retry in range(3):
+                print(f"Haciendo clic en el botón 'Imprimir Factura' (Intento {retry + 1})...")
+                try:
+                    btn_imprimir.click()
+                except Exception as click_err:
+                    print(f"Error al hacer clic en Imprimir Factura: {click_err}")
+                
+                # Esperamos a ver si aparece el botón 'Descargar recibo'
+                try:
+                    btn_descargar.wait_for(state="visible", timeout=6000)
+                    exito_modal_visible = True
+                    break
+                except Exception:
+                    print("No apareció el botón 'Descargar recibo' aún. Reintentando...")
+            
+            if not exito_modal_visible:
+                # Guardamos captura final en caso de error
+                try:
+                    page.screenshot(path="error_imprimir_factura.png")
+                except:
+                    pass
+                raise Exception("No apareció el popup de éxito con el botón 'Descargar recibo' después de varios intentos.")
 
             # Hacer clic en el botón Descargar Recibo, lo cual iniciará la descarga o el popup con el PDF
             print("Haciendo clic en el botón 'Descargar recibo'...")
