@@ -425,6 +425,88 @@
             border: none;
         }
 
+        /* QR Payment Card */
+        .qr-payment-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            animation: fadeIn 0.5s ease-out;
+            margin-bottom: 8px;
+        }
+
+        .qr-image-wrapper {
+            background: white;
+            padding: 8px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            width: 140px;
+            height: 140px;
+            flex-shrink: 0;
+        }
+
+        .qr-image-wrapper img {
+            width: 124px;
+            height: 124px;
+        }
+
+        .qr-info-section {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .qr-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent);
+        }
+
+        .qr-title-row h4 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .qr-timer-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #facc15;
+            font-size: 0.85rem;
+            font-weight: 500;
+            background: rgba(250, 204, 21, 0.1);
+            padding: 6px 12px;
+            border-radius: 8px;
+            width: fit-content;
+            border: 1px solid rgba(250, 204, 21, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .qr-payment-card {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 16px;
+                padding: 16px;
+            }
+            .qr-info-section {
+                align-items: center;
+            }
+            .qr-timer-badge {
+                justify-content: center;
+            }
+        }
+
         /* Message Box */
         .message-box {
             padding: 16px;
@@ -607,6 +689,31 @@
                     </div>
                 </div>
 
+                <!-- QR de Pago en Línea (si está disponible) -->
+                <div id="qrPaymentContainer" class="qr-payment-card" style="display: none;">
+                    <div class="qr-image-wrapper">
+                        <img id="qrImage" src="" alt="QR de Pago">
+                    </div>
+                    <div class="qr-info-section">
+                        <div class="qr-title-row">
+                            <i data-lucide="qr-code" style="width: 20px; height: 20px;"></i>
+                            <h4>Escanea y paga en línea</h4>
+                        </div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4;">
+                            Puedes pagar de forma segura escaneando este código QR desde tu celular o haciendo clic en el botón de la derecha para PSE.
+                        </p>
+                        <div class="qr-timer-badge">
+                            <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
+                            <span>El enlace de pago solo está disponible por 10 minutos.</span>
+                        </div>
+                    </div>
+                    <div style="flex-shrink: 0;">
+                        <a id="payLinkBtn" href="#" target="_blank" class="btn btn-success" style="padding: 12px 20px; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                            <i data-lucide="external-link"></i> Ir a Pagar
+                        </a>
+                    </div>
+                </div>
+
                 <div class="pdf-frame-container">
                     <iframe id="pdfViewer" src="" title="Visor de Factura Predial"></iframe>
                 </div>
@@ -675,6 +782,19 @@
                 pdfViewer.src = pdfUrl;
                 downloadBtn.href = pdfUrl;
                 resultFilenameText.innerText = `Archivo: ${currentFilename}`;
+                
+                // Configurar el QR de pago
+                const qrContainer = document.getElementById('qrPaymentContainer');
+                if (result.payment_qr && result.payment_url) {
+                    document.getElementById('qrImage').src = result.payment_qr;
+                    document.getElementById('payLinkBtn').href = result.payment_url;
+                    qrContainer.style.display = 'flex';
+                } else {
+                    qrContainer.style.display = 'none';
+                }
+                
+                // Re-inicializar iconos de Lucide (por si se agregaron elementos dinámicos)
+                lucide.createIcons();
                 
                 // Cambiar a vista de resultados
                 switchView('resultView');
@@ -765,6 +885,9 @@
     // Volver al formulario para una nueva consulta
     backBtn.addEventListener('click', () => {
         pdfViewer.src = '';
+        document.getElementById('qrImage').src = '';
+        document.getElementById('payLinkBtn').href = '#';
+        document.getElementById('qrPaymentContainer').style.display = 'none';
         switchView('formView');
     });
 

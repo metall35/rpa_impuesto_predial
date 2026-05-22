@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 from twocaptcha import TwoCaptcha
 # pyrefly: ignore [missing-import]
 from playwright.sync_api import sync_playwright
+import qrcode
+import io
+import base64
 
 # Cargar variables de entorno del archivo .env
 load_dotenv()
@@ -205,6 +208,7 @@ def run_rpa(search_type, search_value, phone, email):
             page.get_by_label("Correo Electrónico").wait_for(state="visible", timeout=5000)
             page.get_by_label("Correo Electrónico").fill(email)
 
+            # Descargando factura...
             print("Descargando factura...")
             # Monitorear tanto el evento de descarga estándar como la apertura de nuevas pestañas (popups)
             download_obj = None
@@ -261,7 +265,20 @@ def run_rpa(search_type, search_value, phone, email):
                     pass
                 raise Exception("No apareció el popup de éxito con el botón 'Descargar recibo' después de varios intentos.")
 
-            # Hacer clic en el botón Descargar Recibo, lo cual iniciará la descarga o el popup con el PDF
+            # --- NUEVO FLUJO DE ORDEN (Descargar la factura primero, bloqueando redirecciones, y luego pagar) ---
+            
+            # 1. Definir interceptor de rutas para bloquear la redirección automática a la segunda página durante la descarga
+            def intercept_redirects(route):
+                if route.request.is_navigation_request() and "/Predial/Index" in route.request.url:
+                    print(f"Interceptada y bloqueada redirección automática a: {route.request.url}")
+                    route.abort()
+                else:
+                    route.continue_()
+
+            # Registrar la ruta en la página
+            page.route("**/*", intercept_redirects)
+            
+            # 2. Hacer clic en el botón Descargar Recibo para iniciar la descarga del PDF
             print("Haciendo clic en el botón 'Descargar recibo'...")
             btn_descargar.click()
 
@@ -275,18 +292,17 @@ def run_rpa(search_type, search_value, phone, email):
             descargas_dir = os.path.join(os.getcwd(), "facturas_descargadas")
             os.makedirs(descargas_dir, exist_ok=True)
             
+            file_saved = False
+            file_path = None
+            filename = None
+            
             # Caso A: Descarga estándar iniciada por el navegador
             if download_obj:
                 file_path = os.path.join(descargas_dir, download_obj.suggested_filename)
                 download_obj.save_as(file_path)
+                filename = os.path.basename(file_path)
                 print(f"Factura descargada exitosamente en: {file_path}")
-                imprimir_archivo(file_path)
-                return {
-                    "status": "success", 
-                    "message": "Factura descargada exitosamente.", 
-                    "file": file_path,
-                    "filename": os.path.basename(file_path)
-                }
+                file_saved = True
             
             # Caso B: Se abrió una nueva pestaña con el PDF
             elif popup_page:
@@ -303,17 +319,90 @@ def run_rpa(search_type, search_value, phone, email):
                     with open(file_path, "wb") as f:
                         f.write(response.body())
                     print(f"Factura descargada exitosamente desde nueva pestaña en: {file_path}")
-                    imprimir_archivo(file_path)
-                    return {
-                        "status": "success", 
-                        "message": "Factura descargada exitosamente.", 
-                        "file": file_path,
-                        "filename": filename
-                    }
+                    file_saved = True
                 except Exception as req_err:
                     raise Exception(f"No se pudo descargar el PDF de la nueva pestaña: {req_err}")
-            else:
+            
+            # Remover el interceptor de rutas
+            try:
+                page.unroute("**/*", intercept_redirects)
+            except Exception as e:
+                print(f"Advertencia al remover interceptor: {e}")
+            
+            if not file_saved:
                 raise Exception("No se detectó descarga ni apertura de PDF después de hacer clic en Imprimir Factura.")
+
+            # Imprimir el archivo (local/servidor)
+            imprimir_archivo(file_path)
+            
+            # 3. Remover la modal de éxito de PDF (SweetAlert) para revelar la página de fondo y el botón de pago
+            print("Removiendo la modal de éxito de PDF para interactuar con la página de fondo...")
+            page.evaluate("""
+                const swal = document.querySelector('.swal2-container');
+                if (swal) {
+                    swal.remove();
+                }
+                document.body.classList.remove('swal2-shown', 'swal2-height-auto');
+                document.documentElement.classList.remove('swal2-shown', 'swal2-height-auto');
+            """)
+            
+            # 4. Capturar el enlace de pago en línea (PSE) y generar el QR
+            payment_url = None
+            payment_qr = None
+            print("Intentando capturar enlace de pago en línea (PSE)...")
+            try:
+                btn_pagar = page.locator("text='Pagar en Línea'").first
+                btn_pagar.wait_for(state="visible", timeout=10000)
+                
+                with page.expect_popup(timeout=20000) as popup_info:
+                    btn_pagar.click()
+                
+                payment_popup = popup_info.value
+                # Esperar a que la URL de pago cambie de about:blank o se cargue
+                for _ in range(20):
+                    if payment_popup.url and payment_popup.url != "about:blank":
+                        break
+                    page.wait_for_timeout(500)
+                payment_url = payment_popup.url
+                print(f"URL de pago en línea capturada: {payment_url}")
+                payment_popup.close()
+                
+                # Cerrar la modal SweetAlert de pago que se genera tras el clic para dejar el DOM limpio
+                page.evaluate("""
+                    const swal = document.querySelector('.swal2-container');
+                    if (swal) {
+                        swal.remove();
+                    }
+                    document.body.classList.remove('swal2-shown', 'swal2-height-auto');
+                    document.documentElement.classList.remove('swal2-shown', 'swal2-height-auto');
+                """)
+                
+                if payment_url and payment_url != "about:blank":
+                    # Generar el código QR
+                    qr = qrcode.QRCode(
+                        version=1,
+                        error_correction=qrcode.constants.ERROR_CORRECT_L,
+                        box_size=10,
+                        border=4,
+                    )
+                    qr.add_data(payment_url)
+                    qr.make(fit=True)
+                    img = qr.make_image(fill_color="black", back_color="white")
+                    buffered = io.BytesIO()
+                    img.save(buffered, format="PNG")
+                    payment_qr = f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode('utf-8')}"
+                    print("QR de pago generado exitosamente.")
+            except Exception as pay_err:
+                print(f"Advertencia: No se pudo capturar el enlace de pago en línea o generar el QR: {pay_err}")
+
+            return {
+                "status": "success", 
+                "message": "Factura descargada exitosamente.", 
+                "file": file_path,
+                "filename": filename,
+                "payment_url": payment_url,
+                "payment_qr": payment_qr
+            }
 
         except Exception as e:
             try:
