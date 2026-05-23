@@ -1,6 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
-import logo from '../assets/logo.png';
+import logo from '../../assets/logo.png';
 import styles from './FechasPagoView.module.css';
 
 export default function FechasPagoView() {

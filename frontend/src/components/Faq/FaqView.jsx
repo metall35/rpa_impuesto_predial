@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { CreditCard, GraduationCap, Heart, PhoneCall, Building2, ChevronDown, ChevronUp } from 'lucide-react';
-import logo from '../assets/logo.png';
+import logo from '../../assets/logo.png';
 import styles from './FaqView.module.css';
 
 export default function FaqView() {
-  // Estado para controlar qué acordeón está abierto. Guardamos el índice como "categoria-pregunta"
   const [activeFaq, setActiveFaq] = useState(null);
 
   const toggleFaq = (key) => {

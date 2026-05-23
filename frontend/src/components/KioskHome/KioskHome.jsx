@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar, ListOrdered, FileText, HelpCircle, Headset } from 'lucide-react';
-import logo from '../assets/logo.png';
+import logo from '../../assets/logo.png';
 import styles from './KioskHome.module.css';
 
 export default function KioskHome({ setView }) {

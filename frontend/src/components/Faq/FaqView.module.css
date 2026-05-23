@@ -32,7 +32,6 @@
     margin-top: 10px;
 }
 
-/* Custom Scrollbar for FAQs */
 .faqCategoriesContainer::-webkit-scrollbar {
     width: 8px;
 }

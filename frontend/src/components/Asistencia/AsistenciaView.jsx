@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Home, Phone, MessageSquare, CheckCircle } from 'lucide-react';
-import logo from '../assets/logo.png';
+import logo from '../../assets/logo.png';
 import styles from './AsistenciaView.module.css';
 
 export default function AsistenciaView() {

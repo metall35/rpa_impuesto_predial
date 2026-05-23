@@ -1,6 +1,6 @@
 import React from 'react';
 import { ShieldCheck } from 'lucide-react';
-import logo from '../assets/logo.png';
+import logo from '../../assets/logo.png';
 import styles from './GuiaPasoPasoView.module.css';
 
 export default function GuiaPasoPasoView() {

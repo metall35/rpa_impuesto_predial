@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { ArrowLeft, HelpCircle } from 'lucide-react';
 import logo from './assets/logo.png';
-import KioskHome from './components/KioskHome';
-import FechasPagoView from './components/FechasPagoView';
-import GuiaPasoPasoView from './components/GuiaPasoPasoView';
-import FaqView from './components/FaqView';
-import AsistenciaView from './components/AsistenciaView';
-import FormView from './components/FormView';
-import LoadingView from './components/LoadingView';
-import ResultView from './components/ResultView';
+import KioskHome from './components/KioskHome/KioskHome';
+import FechasPagoView from './components/FechasPago/FechasPagoView';
+import GuiaPasoPasoView from './components/GuiaPasoPaso/GuiaPasoPasoView';
+import FaqView from './components/Faq/FaqView';
+import AsistenciaView from './components/Asistencia/AsistenciaView';
+import FormView from './components/RpaFlow/FormView';
+import LoadingView from './components/RpaFlow/LoadingView';
+import ResultView from './components/RpaFlow/ResultView';
 import { useRpa } from './hooks/useRpa';
 import styles from './App.module.css';
 
