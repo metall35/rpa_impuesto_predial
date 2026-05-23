@@ -1,7 +1,7 @@
 import React from 'react';
+import styles from './RpaFlow.module.css';
 
 export default function LoadingView({ activeStep }) {
-  // Mapeo de pasos a textos requeridos por el usuario
   const stepsText = {
     1: 'Iniciando proceso...',
     2: 'Buscando factura...',
@@ -10,7 +10,6 @@ export default function LoadingView({ activeStep }) {
     5: 'Finalizado'
   };
 
-  // Porcentaje de progreso para cada paso
   const progressPercentage = {
     1: 20,
     2: 45,
@@ -23,31 +22,31 @@ export default function LoadingView({ activeStep }) {
   const percentage = progressPercentage[activeStep] || 10;
 
   return (
-    <div id="loadingView" className="view active">
-      <div className="loading-container">
+    <div id="loadingView">
+      <div className={styles.loadingContainer}>
         {/* Spinner animado superior */}
-        <div className="spinner-outer">
-          <div className="spinner-inner"></div>
+        <div className={styles.spinnerOuter}>
+          <div className={styles.spinnerInner}></div>
         </div>
 
         {/* Textos de Estado */}
-        <div className="kiosk-loading-header">
-          <h3 className="kiosk-loading-title">Automatización en Progreso</h3>
-          <p className="kiosk-loading-subtitle">
+        <div className={styles.kioskLoadingHeader}>
+          <h3 className={styles.kioskLoadingTitle}>Automatización en Progreso</h3>
+          <p className={styles.kioskLoadingSubtitle}>
             El sistema está realizando la consulta de manera inteligente en el portal de la alcaldía.
           </p>
         </div>
 
         {/* Contenedor de la barra de progreso */}
-        <div className="kiosk-progress-container">
-          <div className="kiosk-progress-label-row">
-            <span className="kiosk-progress-status">{currentStatus}</span>
-            <span className="kiosk-progress-percentage">{percentage}%</span>
+        <div className={styles.kioskProgressContainer}>
+          <div className={styles.kioskProgressLabelRow}>
+            <span className={styles.kioskProgressStatus}>{currentStatus}</span>
+            <span className={styles.kioskProgressPercentage}>{percentage}%</span>
           </div>
           
-          <div className="kiosk-progress-track">
+          <div className={styles.kioskProgressTrack}>
             <div 
-              className="kiosk-progress-fill" 
+              className={styles.kioskProgressFill} 
               style={{ width: `${percentage}%` }}
             ></div>
           </div>

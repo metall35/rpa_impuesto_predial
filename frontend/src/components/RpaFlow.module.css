@@ -1,0 +1,410 @@
+/* RPA Search Form View */
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.formGroup label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.formGroup label svg {
+    color: var(--primary-green);
+    width: 18px;
+    height: 18px;
+}
+
+.inputWrapper {
+    position: relative;
+}
+
+.inputWrapper svg,
+.inputWrapper :global(.icon-input) {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+    width: 18px;
+    height: 18px;
+    transition: var(--transition-smooth);
+}
+
+.inputWrapper input,
+.inputWrapper select {
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 12px;
+    padding: 14px 16px 14px 46px;
+    color: var(--text-main);
+    font-size: 1rem;
+    font-family: inherit;
+    transition: var(--transition-smooth);
+    outline: none;
+}
+
+.inputWrapper select {
+    appearance: none;
+    cursor: pointer;
+}
+
+.selectArrow {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.inputWrapper input:focus, 
+.inputWrapper select:focus {
+    border-color: var(--primary-green);
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(0, 104, 55, 0.15);
+}
+
+.inputWrapper input:focus ~ svg, 
+.inputWrapper select:focus ~ svg {
+    color: var(--primary-green);
+}
+
+.btn {
+    background: var(--primary-green);
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 16px 24px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(0, 104, 55, 0.15);
+    font-family: inherit;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.btn:hover {
+    background: var(--primary-green-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 104, 55, 0.25);
+}
+
+.btnSecondary {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: var(--text-main);
+    box-shadow: none;
+    width: auto;
+    margin-top: 0;
+}
+
+.btnSecondary:hover {
+    background: #f8f9fa;
+    border-color: rgba(0, 0, 0, 0.15);
+    box-shadow: none;
+    color: var(--text-main);
+}
+
+.btnSuccess {
+    background: linear-gradient(135deg, var(--success) 0, #218838 100%);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+    width: auto;
+    margin-top: 0;
+}
+
+.btnSuccess:hover {
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.messageBox {
+    padding: 16px;
+    border-radius: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 20px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.messageBox.error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.messageBox svg {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+/* Loading View */
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 0;
+    text-align: center;
+    gap: 28px;
+}
+
+.spinnerOuter {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    padding: 4px;
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-orange) 100%);
+    animation: rotate 2s linear infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinnerInner {
+    width: 100%;
+    height: 100%;
+    background-color: #ffffff;
+    border-radius: 50%;
+}
+
+.kioskLoadingHeader {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.kioskLoadingTitle {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.kioskLoadingSubtitle {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    max-width: 450px;
+    margin: 0 auto;
+    line-height: 1.45;
+}
+
+.kioskProgressContainer {
+    width: 100%;
+    max-width: 500px;
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+}
+
+.kioskProgressLabelRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.kioskProgressStatus {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--primary-green);
+}
+
+.kioskProgressPercentage {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.kioskProgressTrack {
+    width: 100%;
+    height: 16px;
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.kioskProgressFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-green) 0%, #28a745 50%, var(--primary-green) 100%);
+    background-size: 200% 100%;
+    border-radius: 10px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: shimmer 2s infinite linear;
+}
+
+/* Result View */
+.resultContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.resultHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.resultTitle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--success);
+    font-weight: 700;
+    font-size: 1.25rem;
+    text-align: left;
+}
+
+.resultActions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.pdfFrameContainer {
+    width: 100%;
+    height: 600px;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.05);
+    position: relative;
+}
+
+.pdfFrameContainer iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* QR Card */
+.qrPaymentCard {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    animation: fadeIn 0.5s ease-out;
+    margin-bottom: 8px;
+    text-align: left;
+}
+
+.qrImageWrapper {
+    background: white;
+    padding: 8px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+    width: 140px;
+    height: 140px;
+    flex-shrink: 0;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.qrImageWrapper img {
+    width: 124px;
+    height: 124px;
+}
+
+.qrInfoSection {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.qrTitleRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--primary-green);
+}
+
+.qrTitleRow h4 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.qrTimerBadge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #856404;
+    font-size: 0.85rem;
+    font-weight: 700;
+    background: #fff3cd;
+    padding: 6px 12px;
+    border-radius: 8px;
+    width: fit-content;
+    border: 1px solid #ffeeba;
+}
+
+/* Keyframes */
+@keyframes rotate {
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    .formGrid {
+        grid-template-columns: 1fr;
+    }
+    
+    .qrPaymentCard {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 16px;
+    }
+    
+    .qrInfoSection {
+        align-items: center;
+    }
+}

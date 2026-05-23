@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Layers, ChevronDown, Hash, FileText, Phone, Smartphone, Mail, AtSign, Play, AlertCircle } from 'lucide-react';
+import styles from './RpaFlow.module.css';
 
 export default function FormView({
   searchType,
@@ -15,14 +16,14 @@ export default function FormView({
   handleSubmit
 }) {
   return (
-    <div id="formView" className="view active">
+    <div id="formView">
       <form onSubmit={handleSubmit}>
-        <div className="form-grid">
-          <div className="form-group">
+        <div className={styles.formGrid}>
+          <div className={styles.formGroup}>
             <label htmlFor="search_type">
-              <Search className="icon-label" size={16} /> Tipo de Búsqueda
+              <Search size={16} /> Tipo de Búsqueda
             </label>
-            <div className="input-wrapper">
+            <div className={styles.inputWrapper}>
               <select
                 name="search_type"
                 id="search_type"
@@ -35,17 +36,17 @@ export default function FormView({
                 <option value="Número Cuenta">Número de Cuenta</option>
               </select>
               <Layers className="icon-input" size={18} />
-              <div className="select-arrow">
+              <div className={styles.selectArrow}>
                 <ChevronDown size={16} />
               </div>
             </div>
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="search_value">
-              <Hash className="icon-label" size={16} /> Código / Documento
+              <Hash size={16} /> Código / Documento
             </label>
-            <div className="input-wrapper">
+            <div className={styles.inputWrapper}>
               <input
                 type="text"
                 name="search_value"
@@ -59,11 +60,11 @@ export default function FormView({
             </div>
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="phone">
-              <Phone className="icon-label" size={16} /> Teléfono Móvil
+              <Phone size={16} /> Teléfono Móvil
             </label>
-            <div className="input-wrapper">
+            <div className={styles.inputWrapper}>
               <input
                 type="text"
                 name="phone"
@@ -77,11 +78,11 @@ export default function FormView({
             </div>
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label htmlFor="email">
-              <Mail className="icon-label" size={16} /> Correo Electrónico
+              <Mail size={16} /> Correo Electrónico
             </label>
-            <div className="input-wrapper">
+            <div className={styles.inputWrapper}>
               <input
                 type="email"
                 name="email"
@@ -96,13 +97,13 @@ export default function FormView({
           </div>
         </div>
 
-        <button type="submit" className="btn" id="submitBtn" disabled={status === 'loading'}>
-          <Play size={18} /> Generar factura
+        <button type="submit" className={styles.btn} id="submitBtn" disabled={status === 'loading'}>
+          <Play size={18} /> Iniciar Generación Automatizada
         </button>
       </form>
 
       {errorMessage && (
-        <div id="errorAlert" className="message-box error">
+        <div id="errorAlert" className={`${styles.messageBox} ${styles.error}`}>
           <AlertCircle size={18} />
           <span id="errorMessage">{errorMessage}</span>
         </div>

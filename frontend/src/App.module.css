@@ -1,0 +1,67 @@
+.kioskContainer {
+    width: 100%;
+    max-width: 900px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.kioskCard {
+    background: rgba(245, 247, 250, 0.88);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: var(--card-radius);
+    padding: 40px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.18);
+    width: 100%;
+    transition: var(--transition-smooth);
+    position: relative;
+    z-index: 10;
+}
+
+.kioskNavigationFloaters {
+    display: flex;
+    justify-content: space-between;
+    padding: 24px 0 0 0;
+    width: 100%;
+    z-index: 20;
+}
+
+.kioskFloatBackBtn,
+.kioskFloatHelpBtn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    transition: var(--transition-smooth);
+}
+
+.kioskFloatBackBtn {
+    background: #ffffff;
+    color: var(--text-main);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.kioskFloatBackBtn:hover {
+    transform: translateY(-3px) scale(1.05);
+    background: #f8f9fa;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+}
+
+.kioskFloatHelpBtn {
+    background: var(--accent-orange);
+    color: #ffffff;
+}
+
+.kioskFloatHelpBtn:hover {
+    transform: translateY(-3px) scale(1.05);
+    background: var(--accent-orange-hover);
+    box-shadow: 0 12px 28px rgba(230, 126, 34, 0.35);
+}

@@ -1,6 +1,7 @@
 import React from 'react';
-import { CheckCircle2, ArrowLeft, Download, Printer, Server } from 'lucide-react';
+import { CheckCircle2, ArrowLeft, Server } from 'lucide-react';
 import QrPaymentCard from './QrPaymentCard';
+import styles from './RpaFlow.module.css';
 
 export default function ResultView({
   result,
@@ -12,10 +13,10 @@ export default function ResultView({
   if (!result) return null;
 
   return (
-    <div id="resultView" className="view active">
-      <div className="result-container">
-        <div className="result-header">
-          <div className="result-title">
+    <div id="resultView">
+      <div className={styles.resultContainer}>
+        <div className={styles.resultHeader}>
+          <div className={styles.resultTitle}>
             <CheckCircle2 size={28} style={{ color: 'var(--success)' }} />
             <div>
               <h3 style={{ fontSize: '1.25rem', fontFamily: 'Outfit', color: 'var(--text-main)' }}>
@@ -26,12 +27,12 @@ export default function ResultView({
               </p>
             </div>
           </div>
-          <div className="result-actions">
-            <button className="btn btn-secondary" id="backBtn" onClick={reset}>
+          <div className={styles.resultActions}>
+            <button className={`${styles.btn} ${styles.btnSecondary}`} id="backBtn" onClick={reset}>
               <ArrowLeft size={16} /> Nueva Consulta
             </button>
             <button
-              className="btn btn-success"
+              className={`${styles.btn} ${styles.btnSuccess}`}
               id="printServerBtn"
               onClick={printServer}
               disabled={isPrintingServer}
@@ -39,7 +40,6 @@ export default function ResultView({
               {isPrintingServer ? (
                 <>
                   <span
-                    className="spinner-tiny"
                     style={{
                       border: '2px solid #fff',
                       borderTop: '2px solid transparent',
@@ -47,7 +47,7 @@ export default function ResultView({
                       width: '14px',
                       height: '14px',
                       display: 'inline-block',
-                      animation: 'spin 1s linear infinite',
+                      animation: `${styles.rotate} 1s linear infinite`,
                       marginRight: '6px',
                     }}
                   ></span>
@@ -65,7 +65,7 @@ export default function ResultView({
         {/* QR de Pago en Línea */}
         <QrPaymentCard paymentUrl={result.paymentUrl} paymentQr={result.paymentQr} />
 
-        <div className="pdf-frame-container">
+        <div className={styles.pdfFrameContainer}>
           <iframe id="pdfViewer" src={result.pdfUrl} title="Visor de Factura Predial"></iframe>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Home, Phone, MessageSquare, CheckCircle } from 'lucide-react';
 import logo from '../assets/logo.png';
+import styles from './AsistenciaView.module.css';
 
 export default function AsistenciaView() {
   const [nombre, setNombre] = useState('');
@@ -16,25 +17,24 @@ export default function AsistenciaView() {
       alert('Debe aceptar la Política de Tratamiento de Datos Personales para continuar.');
       return;
     }
-    // No tiene integración por requerimiento:
     setSubmitted(true);
   };
 
   return (
-    <div className="asistencia-view">
+    <div>
       {/* Logo */}
-      <div className="logo-container">
-        <img src={logo} alt="Alcaldía de Apartadó" className="kiosk-logo" />
+      <div className={styles.logoContainer}>
+        <img src={logo} alt="Alcaldía de Apartadó" className={styles.kioskLogo} />
       </div>
 
       {/* Título */}
-      <h2 className="kiosk-view-title font-semibold text-green-header">
+      <h2 className={styles.kioskViewTitle}>
         ¿Necesitas asistencia con tu pago?
       </h2>
 
       {submitted ? (
-        <div className="kiosk-success-submission animate-fade-in text-center">
-          <CheckCircle size={64} className="text-green mx-auto mb-4" />
+        <div className={`${styles.kioskSuccessSubmission} ${styles.mxAuto} ${styles.mb4} text-center`}>
+          <CheckCircle size={64} className={`${styles.mxAuto} ${styles.mb4}`} style={{ color: 'var(--success)' }} />
           <h3>¡Información enviada con éxito!</h3>
           <p>
             Hemos registrado tus datos. Un asesor de la Alcaldía de Apartadó se pondrá en contacto al teléfono proporcionado en breve.
@@ -48,20 +48,20 @@ export default function AsistenciaView() {
               setComentarios('');
               setAceptoPolitica(false);
             }} 
-            className="btn btn-success mt-4"
+            className={`${styles.btn} ${styles.btnSuccess} ${styles.mt4} ${styles.mxAuto}`}
           >
             Enviar otra consulta
           </button>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="kiosk-form">
-          <div className="form-grid">
+        <form onSubmit={handleSubmit} className={styles.kioskForm}>
+          <div className={styles.formGrid}>
             {/* Nombre Completo */}
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="nombre">
                 <User size={16} /> Nombre completo
               </label>
-              <div className="input-wrapper">
+              <div className={styles.inputWrapper}>
                 <input
                   type="text"
                   id="nombre"
@@ -76,11 +76,11 @@ export default function AsistenciaView() {
             </div>
 
             {/* ID del Predio */}
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="idPredio">
                 <Home size={16} /> ID del predio
               </label>
-              <div className="input-wrapper">
+              <div className={styles.inputWrapper}>
                 <input
                   type="text"
                   id="idPredio"
@@ -95,11 +95,11 @@ export default function AsistenciaView() {
             </div>
 
             {/* Teléfono */}
-            <div className="form-group">
+            <div className={styles.formGroup}>
               <label htmlFor="telefono">
                 <Phone size={16} /> Teléfono de contacto
               </label>
-              <div className="input-wrapper">
+              <div className={styles.inputWrapper}>
                 <input
                   type="text"
                   id="telefono"
@@ -114,11 +114,11 @@ export default function AsistenciaView() {
             </div>
 
             {/* Comentarios */}
-            <div className="form-group full-width-field">
+            <div className={`${styles.formGroup} ${styles.fullWidthField}`}>
               <label htmlFor="comentarios">
                 <MessageSquare size={16} /> Comentarios
               </label>
-              <div className="input-wrapper">
+              <div className={styles.inputWrapper}>
                 <textarea
                   id="comentarios"
                   name="comentarios"
@@ -128,32 +128,32 @@ export default function AsistenciaView() {
                   value={comentarios}
                   onChange={(e) => setComentarios(e.target.value)}
                 />
-                <MessageSquare className="icon-input-textarea" size={18} />
+                <MessageSquare className={styles.iconInputTextarea} size={18} />
               </div>
             </div>
           </div>
 
           {/* Checkbox de Privacidad */}
-          <div className="kiosk-checkbox-group">
-            <label className="checkbox-container">
+          <div className={styles.kioskCheckboxGroup}>
+            <label className={styles.checkboxContainer}>
               <input
                 type="checkbox"
                 required
                 checked={aceptoPolitica}
                 onChange={(e) => setAceptoPolitica(e.target.checked)}
               />
-              <span className="checkmark"></span>
-              <span className="checkbox-text">
+              <span className={styles.checkmark}></span>
+              <span className={styles.checkboxText}>
                 <strong>Acepto Política de Tratamiento de Datos Personales</strong>
                 <br />
-                Al enviar este formulario, autorizo el tratamiento de mis datos personales conforme a la Ley 1581 de 2012 y demás normas vigentes, con el propósito de recibir asistencia relacionada con trámites y pagos en línea ante la Alcaldía de Apartadó. Para más información <a href="#policy" onClick={(e) => { e.preventDefault(); alert('Conforme a la Ley 1581 de 2012, sus datos personales serán custodiados y utilizados únicamente para responder a su solicitud de asistencia.'); }} className="text-link">clic aquí</a>
+                Al enviar este formulario, autorizo el tratamiento de mis datos personales conforme a la Ley 1581 de 2012 y demás normas vigentes, con el propósito de recibir asistencia relacionada con trámites y pagos en línea ante la Alcaldía de Apartadó. Para más información <a href="#policy" onClick={(e) => { e.preventDefault(); alert('Conforme a la Ley 1581 de 2012, sus datos personales serán custodiados y utilizados únicamente para responder a su solicitud de asistencia.'); }} className={styles.textLink}>clic aquí</a>
               </span>
             </label>
           </div>
 
           {/* Botón de Enviar */}
-          <div className="form-submit-container">
-            <button type="submit" className="kiosk-submit-btn">
+          <div className={styles.formSubmitContainer}>
+            <button type="submit" className={styles.kioskSubmitBtn}>
               ENVIAR INFORMACIÓN
             </button>
           </div>

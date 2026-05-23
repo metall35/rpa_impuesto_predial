@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CreditCard, GraduationCap, Heart, PhoneCall, Building2, ChevronDown, ChevronUp } from 'lucide-react';
 import logo from '../assets/logo.png';
+import styles from './FaqView.module.css';
 
 export default function FaqView() {
   // Estado para controlar qué acordeón está abierto. Guardamos el índice como "categoria-pregunta"
@@ -18,7 +19,7 @@ export default function FaqView() {
     {
       id: 'tributario',
       title: 'Trámites Tributarios y Pagos',
-      icon: <CreditCard size={20} className="cat-icon" />,
+      icon: <CreditCard size={20} className={styles.catIcon} />,
       items: [
         {
           q: '¿Cómo puedo pagar el Impuesto Predial?',
@@ -37,7 +38,7 @@ export default function FaqView() {
     {
       id: 'educacion',
       title: 'Educación y Empleo',
-      icon: <GraduationCap size={20} className="cat-icon" />,
+      icon: <GraduationCap size={20} className={styles.catIcon} />,
       items: [
         {
           q: '¿Cómo accedo a plazas como docente en el municipio?',
@@ -52,7 +53,7 @@ export default function FaqView() {
     {
       id: 'sociales',
       title: 'Programas Sociales y Salud',
-      icon: <Heart size={20} className="cat-icon" />,
+      icon: <Heart size={20} className={styles.catIcon} />,
       items: [
         {
           q: '¿Cómo me inscribo al Programa del Adulto Mayor?',
@@ -67,14 +68,14 @@ export default function FaqView() {
     {
       id: 'atencion',
       title: 'Atención al Ciudadano',
-      icon: <PhoneCall size={20} className="cat-icon" />,
+      icon: <PhoneCall size={20} className={styles.catIcon} />,
       items: [
         {
           q: '¿Cuáles son los canales de atención oficiales?',
           a: (
             <div>
               <p>Los canales de atención oficiales son:</p>
-              <ul className="faq-list">
+              <ul className={styles.faqList}>
                 <li><strong>Dirección:</strong> Carrera 100 # 103A–02.</li>
                 <li><strong>Teléfono (PBX):</strong> +57 (604) 8280457.</li>
                 <li><strong>Correo para peticiones:</strong> contactenos@apartado.gov.co.</li>
@@ -91,7 +92,7 @@ export default function FaqView() {
     {
       id: 'urbanismo',
       title: 'Urbanismo y Planeación',
-      icon: <Building2 size={20} className="cat-icon" />,
+      icon: <Building2 size={20} className={styles.catIcon} />,
       items: [
         {
           q: '¿Cómo solicito una licencia de construcción o uso de suelo?',
@@ -102,39 +103,39 @@ export default function FaqView() {
   ];
 
   return (
-    <div className="faq-view">
+    <div>
       {/* Logo */}
-      <div className="logo-container">
-        <img src={logo} alt="Alcaldía de Apartadó" className="kiosk-logo" />
+      <div className={styles.logoContainer}>
+        <img src={logo} alt="Alcaldía de Apartadó" className={styles.kioskLogo} />
       </div>
 
       {/* Título */}
-      <h2 className="kiosk-view-title font-bold uppercase">Preguntas Frecuentes</h2>
+      <h2 className={styles.kioskViewTitle}>Preguntas Frecuentes</h2>
 
       {/* Categorías y acordeones */}
-      <div className="faq-categories-container">
+      <div className={styles.faqCategoriesContainer}>
         {categories.map((category) => (
-          <div key={category.id} className="faq-category-section">
-            <h3 className="faq-category-title">
+          <div key={category.id} className={styles.faqCategorySection}>
+            <h3 className={styles.faqCategoryTitle}>
               {category.icon}
               <span>{category.title}</span>
             </h3>
-            <div className="faq-questions-list">
+            <div className={styles.faqQuestionsList}>
               {category.items.map((item, idx) => {
                 const key = `${category.id}-${idx}`;
                 const isOpen = activeFaq === key;
                 return (
-                  <div key={idx} className={`faq-item-card ${isOpen ? 'open' : ''}`}>
+                  <div key={idx} className={`${styles.faqItemCard} ${isOpen ? styles.open : ''}`}>
                     <button
                       onClick={() => toggleFaq(key)}
-                      className="faq-question-btn"
+                      className={styles.faqQuestionBtn}
                     >
-                      <span className="faq-radio-bullet"></span>
-                      <span className="faq-question-text">{item.q}</span>
+                      <span className={styles.faqRadioBullet}></span>
+                      <span className={styles.faqQuestionText}>{item.q}</span>
                       {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                     </button>
                     {isOpen && (
-                      <div className="faq-answer-content">
+                      <div className={styles.faqAnswerContent}>
                         {item.a}
                       </div>
                     )}

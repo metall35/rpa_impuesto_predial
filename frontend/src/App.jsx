@@ -10,6 +10,7 @@ import FormView from './components/FormView';
 import LoadingView from './components/LoadingView';
 import ResultView from './components/ResultView';
 import { useRpa } from './hooks/useRpa';
+import styles from './App.module.css';
 
 function App() {
   const [view, setView] = useState('home'); // 'home' | 'fechas_de_pago' | 'guia_paso_a_paso' | 'copia_de_factura' | 'preguntas_frecuentes' | 'asistencia'
@@ -26,8 +27,8 @@ function App() {
   };
 
   return (
-    <div className="kiosk-container">
-      <main className="kiosk-card">
+    <div className={styles.kioskContainer}>
+      <main className={styles.kioskCard}>
         {/* Vista: Inicio / Home */}
         {view === 'home' && <KioskHome setView={setView} />}
 
@@ -90,10 +91,10 @@ function App() {
 
       {/* Botones de navegación flotantes (visibles en cualquier vista interna) */}
       {view !== 'home' && (
-        <div className="kiosk-navigation-floaters">
+        <div className={styles.kioskNavigationFloaters}>
           <button 
             onClick={handleBack} 
-            className="kiosk-float-back-btn" 
+            className={styles.kioskFloatBackBtn} 
             title="Volver al menú principal"
             id="kiosk-back-btn"
           >
@@ -102,7 +103,7 @@ function App() {
           
           <button 
             onClick={() => setView('asistencia')} 
-            className="kiosk-float-help-btn" 
+            className={styles.kioskFloatHelpBtn} 
             title="Solicitar asistencia"
             id="kiosk-help-btn"
           >
