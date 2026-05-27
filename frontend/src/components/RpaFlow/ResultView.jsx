@@ -1,14 +1,11 @@
-import React from 'react';
-import { CheckCircle2, ArrowLeft, Server } from 'lucide-react';
+
+import { CheckCircle2, ArrowLeft } from 'lucide-react';
 import QrPaymentCard from './QrPaymentCard';
 import styles from './RpaFlow.module.css';
 
 export default function ResultView({
   result,
-  isPrintingServer,
-  reset,
-  printLocal,
-  printServer
+  reset
 }) {
   if (!result) return null;
 
@@ -31,38 +28,9 @@ export default function ResultView({
             <button className={`${styles.btn} ${styles.btnSecondary}`} id="backBtn" onClick={reset}>
               <ArrowLeft size={16} /> Nueva Consulta
             </button>
-            <button
-              className={`${styles.btn} ${styles.btnSuccess}`}
-              id="printServerBtn"
-              onClick={printServer}
-              disabled={isPrintingServer}
-            >
-              {isPrintingServer ? (
-                <>
-                  <span
-                    style={{
-                      border: '2px solid #fff',
-                      borderTop: '2px solid transparent',
-                      borderRadius: '50%',
-                      width: '14px',
-                      height: '14px',
-                      display: 'inline-block',
-                      animation: `${styles.rotate} 1s linear infinite`,
-                      marginRight: '6px',
-                    }}
-                  ></span>
-                  Imprimiendo...
-                </>
-              ) : (
-                <>
-                  <Server size={16} /> Imprimir
-                </>
-              )}
-            </button>
           </div>
         </div>
 
-        {/* QR de Pago en Línea */}
         <QrPaymentCard paymentUrl={result.paymentUrl} paymentQr={result.paymentQr} />
 
         <div className={styles.pdfFrameContainer}>

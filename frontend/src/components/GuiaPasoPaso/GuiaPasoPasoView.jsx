@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShieldCheck } from 'lucide-react';
 import logo from '../../assets/logo.png';
 import styles from './GuiaPasoPasoView.module.css';
@@ -6,16 +5,14 @@ import styles from './GuiaPasoPasoView.module.css';
 export default function GuiaPasoPasoView() {
   return (
     <div>
-      {/* Logo */}
+
       <div className={styles.logoContainer}>
         <img src={logo} alt="Alcaldía de Apartadó" className={styles.kioskLogo} />
       </div>
 
-      {/* Título */}
       <h2 className={styles.kioskViewTitle}>GUÍA PASO A PASO</h2>
       <h3 className={styles.kioskViewSubtitleAccent}>PAGO DE IMPUESTO PREDIAL</h3>
 
-      {/* Cuadrícula 2x2 de Pasos */}
       <div className={styles.stepsGrid}>
         <div className={styles.stepCard}>
           <div className={styles.stepNumber}>1</div>
@@ -58,7 +55,6 @@ export default function GuiaPasoPasoView() {
         </div>
       </div>
 
-      {/* Banner de Trámite Seguro */}
       <div className={styles.kioskAlertBanner}>
         <ShieldCheck size={28} className={styles.bannerIcon} />
         <div className={styles.bannerText}>

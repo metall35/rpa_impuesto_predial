@@ -1,4 +1,3 @@
-import React from 'react';
 import styles from './RpaFlow.module.css';
 
 export default function LoadingView({ activeStep }) {
@@ -24,12 +23,11 @@ export default function LoadingView({ activeStep }) {
   return (
     <div id="loadingView">
       <div className={styles.loadingContainer}>
-        {/* Spinner animado superior */}
+        
         <div className={styles.spinnerOuter}>
           <div className={styles.spinnerInner}></div>
         </div>
 
-        {/* Textos de Estado */}
         <div className={styles.kioskLoadingHeader}>
           <h3 className={styles.kioskLoadingTitle}>Automatización en Progreso</h3>
           <p className={styles.kioskLoadingSubtitle}>
@@ -37,7 +35,6 @@ export default function LoadingView({ activeStep }) {
           </p>
         </div>
 
-        {/* Contenedor de la barra de progreso */}
         <div className={styles.kioskProgressContainer}>
           <div className={styles.kioskProgressLabelRow}>
             <span className={styles.kioskProgressStatus}>{currentStatus}</span>

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Search, Layers, ChevronDown, Hash, FileText, Phone, Smartphone, Mail, AtSign, Play, AlertCircle } from 'lucide-react';
 import styles from './RpaFlow.module.css';
 

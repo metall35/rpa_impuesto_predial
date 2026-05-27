@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Calendar, ListOrdered, FileText, HelpCircle, Headset } from 'lucide-react';
 import logo from '../../assets/logo.png';
 import styles from './KioskHome.module.css';
@@ -6,12 +6,10 @@ import styles from './KioskHome.module.css';
 export default function KioskHome({ setView }) {
   return (
     <div className="text-center">
-      {/* Logo de la Alcaldía */}
       <div className={styles.logoContainer}>
         <img src={logo} alt="Alcaldía de Apartadó" className={styles.kioskLogo} />
       </div>
 
-      {/* Título de Bienvenida */}
       <h2 className={styles.kioskWelcomeTitle}>
         ¡Bienvenido a tu Centro de Ayuda de Trámites y Servicios!
       </h2>
@@ -19,7 +17,6 @@ export default function KioskHome({ setView }) {
         Estamos aquí para guiarte. ¿Qué gestión necesitas realizar hoy?
       </p>
 
-      {/* Grid de 4 Botones principales */}
       <div className={styles.kioskGrid}>
         <button 
           onClick={() => setView('fechas_de_pago')} 
@@ -45,7 +42,7 @@ export default function KioskHome({ setView }) {
           id="btn-copia-factura"
         >
           <FileText className={styles.kioskCardIcon} size={48} />
-          <span>Copia de tu factura</span>
+          <span>Consulta y paga</span>
         </button>
 
         <button 
@@ -58,15 +55,14 @@ export default function KioskHome({ setView }) {
         </button>
       </div>
 
-      {/* Botón de Asistencia Inferior */}
-      <button 
+      {/* <button 
         onClick={() => setView('asistencia')} 
         className={styles.kioskAssistBtn}
         id="btn-necesitas-asistencia"
       >
         <Headset size={24} />
         <span>¿Necesitas asistencia?</span>
-      </button>
+      </button> */}
     </div>
   );
 }

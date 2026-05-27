@@ -10,7 +10,6 @@ export const useRpa = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [activeStep, setActiveStep] = useState(1);
   const [result, setResult] = useState(null); // { filename, pdfUrl, paymentUrl, paymentQr }
-  const [isPrintingServer, setIsPrintingServer] = useState(false);
 
   const timeoutsRef = useRef([]);
 
@@ -80,41 +79,7 @@ export const useRpa = () => {
     clearProgressTimeouts();
   };
 
-  const printLocal = () => {
-    if (!result?.pdfUrl) return;
-    const printWindow = window.open(result.pdfUrl, '_blank');
-    if (printWindow) {
-      printWindow.focus();
-    } else {
-      alert('Por favor, permita las ventanas emergentes para visualizar e imprimir la factura.');
-    }
-  };
-
-  const printServer = async () => {
-    if (!result?.filename) return;
-    setIsPrintingServer(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('filename', result.filename);
-
-      const response = await fetch('/api/imprimir_factura', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        alert(`Éxito: ${data.message}`);
-      } else {
-        alert(`Error al imprimir en servidor: ${data.message}`);
-      }
-    } catch (err) {
-      alert('Error de red al intentar imprimir en el servidor.');
-    } finally {
-      setIsPrintingServer(false);
-    }
-  };
+  
 
   return {
     searchType,
@@ -129,10 +94,7 @@ export const useRpa = () => {
     errorMessage,
     activeStep,
     result,
-    isPrintingServer,
     handleSubmit,
     reset,
-    printLocal,
-    printServer,
   };
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, HelpCircle } from 'lucide-react';
 import logo from './assets/logo.png';
 import KioskHome from './components/KioskHome/KioskHome';
@@ -79,10 +79,7 @@ function App() {
             {rpa.status === 'success' && (
               <ResultView
                 result={rpa.result}
-                isPrintingServer={rpa.isPrintingServer}
                 reset={rpa.reset}
-                printLocal={rpa.printLocal}
-                printServer={rpa.printServer}
               />
             )}
           </div>

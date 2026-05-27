@@ -59,17 +59,6 @@ def generar_factura(
     else:
         return JSONResponse(status_code=500, content=result)
 
-@app.post("/api/imprimir_factura")
-def imprimir_factura(filename: str = Form(...)):
-    file_path = os.path.join("facturas_descargadas", filename)
-    if not os.path.exists(file_path):
-        return JSONResponse(status_code=404, content={"status": "error", "message": "El archivo no existe en el servidor."})
-    try:
-        os.startfile(file_path, "print")
-        return {"status": "success", "message": f"Factura {filename} enviada a imprimir en el servidor."}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"status": "error", "message": f"Error al imprimir: {str(e)}"})
-
 
 app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="frontend")
 

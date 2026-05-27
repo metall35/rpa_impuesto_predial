@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { User, Home, Phone, MessageSquare, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import { User, Home, Phone, MessageSquare, CheckCircle, AlertTriangle } from 'lucide-react';
 import logo from '../../assets/logo.png';
 import styles from './AsistenciaView.module.css';
 
@@ -25,6 +25,12 @@ export default function AsistenciaView() {
       {/* Logo */}
       <div className={styles.logoContainer}>
         <img src={logo} alt="Alcaldía de Apartadó" className={styles.kioskLogo} />
+      </div>
+
+      {/* Indicador de Ejemplo */}
+      <div className={styles.exampleBadge}>
+        <AlertTriangle size={16} />
+        <span>VISTA DE EJEMPLO / DEMOSTRACIÓN</span>
       </div>
 
       {/* Título */}

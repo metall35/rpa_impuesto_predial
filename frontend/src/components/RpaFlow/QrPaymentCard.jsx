@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { QrCode, Clock } from 'lucide-react';
 import styles from './RpaFlow.module.css';
 

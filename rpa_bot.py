@@ -11,14 +11,6 @@ import base64
 # archivo .env
 load_dotenv()
 
-# Fun de imprimir factura
-def imprimir_archivo(ruta_archivo):
-    try:
-        # os.startfile(ruta_archivo, "print")
-        print(f"Impresión automática temporalmente desactivada. Archivo guardado en: {ruta_archivo}")
-    except Exception as e:
-        print(f"Error al intentar imprimir: {e}")
-
 #fun principal
 def run_rpa(search_type, search_value, phone, email):
     # Configurar resolvedor de 2Captcha
@@ -291,8 +283,7 @@ def run_rpa(search_type, search_value, phone, email):
             if not file_saved:
                 raise Exception("No se detectó descarga ni apertura de PDF después de hacer clic en Imprimir Factura.")
 
-            # Imprimir el archivo
-            imprimir_archivo(file_path)
+            
             
             page.evaluate("""
                 const swal = document.querySelector('.swal2-container');
