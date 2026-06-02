@@ -28,21 +28,21 @@ export default function KioskHome({ setView }) {
         </button>
 
         <button 
+          onClick={() => setView('copia_de_factura')} 
+          className={styles.kioskCardBtnPrimary}
+          id="btn-copia-factura"
+        >
+          <FileText className={styles.kioskCardIconPrimary} size={48} />
+          <span>Consulta y paga en línea</span>
+        </button>
+
+        <button 
           onClick={() => setView('guia_paso_a_paso')} 
           className={styles.kioskCardBtn}
           id="btn-guia-paso"
         >
           <ListOrdered className={styles.kioskCardIcon} size={48} />
           <span>Guía Paso a Paso</span>
-        </button>
-
-        <button 
-          onClick={() => setView('copia_de_factura')} 
-          className={styles.kioskCardBtn}
-          id="btn-copia-factura"
-        >
-          <FileText className={styles.kioskCardIcon} size={48} />
-          <span>Consulta y paga</span>
         </button>
 
         <button 

@@ -78,6 +78,10 @@ body {
     margin-left: auto;
     margin-right: auto;
 }
+.kiosk-view-subtitle span {
+    color: var(--primary-green);
+    font-weight: 700;
+}
 
 .copia-factura-wrapper {
     animation: fadeIn 0.5s ease-out;

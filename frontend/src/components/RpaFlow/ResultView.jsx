@@ -1,11 +1,12 @@
 
-import { CheckCircle2, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, ArrowLeft, Printer } from 'lucide-react';
 import QrPaymentCard from './QrPaymentCard';
 import styles from './RpaFlow.module.css';
 
 export default function ResultView({
   result,
-  reset
+  reset,
+  printLocal
 }) {
   if (!result) return null;
 
@@ -28,13 +29,25 @@ export default function ResultView({
             <button className={`${styles.btn} ${styles.btnSecondary}`} id="backBtn" onClick={reset}>
               <ArrowLeft size={16} /> Nueva Consulta
             </button>
+            <button
+              onClick={printLocal}
+              className={`${styles.btn} ${styles.btnPrimaryHeader}`}
+              id="printBtn"
+            >
+              <Printer size={16} /> Imprimir Factura
+            </button>
           </div>
         </div>
 
-        <QrPaymentCard paymentUrl={result.paymentUrl} paymentQr={result.paymentQr} />
-
-        <div className={styles.pdfFrameContainer}>
-          <iframe id="pdfViewer" src={result.pdfUrl} title="Visor de Factura Predial"></iframe>
+        <div className={styles.resultContentRow}>
+          <div className={styles.resultLeftCol}>
+            <QrPaymentCard paymentUrl={result.paymentUrl} paymentQr={result.paymentQr} />
+          </div>
+          <div className={styles.resultRightCol}>
+            <div className={styles.pdfFrameContainer}>
+              <iframe id="pdfViewer" src={`${result.pdfUrl}#toolbar=0&navpanes=0`} title="Visor de Factura Predial"></iframe>
+            </div>
+          </div>
         </div>
       </div>
     </div>
