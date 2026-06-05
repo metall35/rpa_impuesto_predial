@@ -273,6 +273,8 @@ def complete_invoice_generation(page, context, search_value, phone, email):
 
 def run_rpa_start(search_type, search_value, phone, email):
     """Phase 1: Start playwright, solve captcha, submit search, check for multiple predios."""
+    import threading
+    print(f"THREAD DEBUG [start]: Running in {threading.current_thread().name} (ID: {threading.current_thread().ident})")
     api_key = os.getenv("TWOCAPTCHA_API_KEY")
     if not api_key:
         print("ADVERTENCIA: No se encontró la API Key de 2Captcha en el archivo .env")
@@ -297,8 +299,8 @@ def run_rpa_start(search_type, search_value, phone, email):
         print("Navegando al portal...")
         page.goto("https://oficinavirtual.apartado-antioquia.gov.co/Predial/Index", wait_until="domcontentloaded", timeout=60000)
         
-        page.get_by_text(search_type, exact=True).wait_for(state="visible", timeout=15000)
-        page.get_by_text(search_type, exact=True).click()
+        page.get_by_text(search_type, exact=True).first.wait_for(state="visible", timeout=40000)
+        page.get_by_text(search_type, exact=True).first.click()
         
         page.locator('input[type="text"]').first.fill(search_value)
 
@@ -440,6 +442,8 @@ def run_rpa_start(search_type, search_value, phone, email):
 
 def run_rpa_continue(session_data, predio_index, search_value, phone, email):
     """Phase 2: Use existing browser context to click on selected row and complete generation."""
+    import threading
+    print(f"THREAD DEBUG [continue]: Running in {threading.current_thread().name} (ID: {threading.current_thread().ident})")
     page = session_data["page"]
     context = session_data["context"]
     

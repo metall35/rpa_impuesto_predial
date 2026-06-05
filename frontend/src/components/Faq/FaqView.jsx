@@ -35,36 +35,6 @@ export default function FaqView() {
       ]
     },
     {
-      id: 'educacion',
-      title: 'Educación y Empleo',
-      icon: <GraduationCap size={20} className={styles.catIcon} />,
-      items: [
-        {
-          q: '¿Cómo accedo a plazas como docente en el municipio?',
-          a: 'El ingreso al servicio educativo estatal se realiza mediante concurso de méritos coordinado por la Comisión Nacional del Servicio Civil (CNSC).'
-        },
-        {
-          q: '¿Dónde consulto las ofertas de empleo de la Alcaldía?',
-          a: 'En la sección "Trabaje con nosotros" o mediante el portal del Servicio Público de Empleo.'
-        }
-      ]
-    },
-    {
-      id: 'sociales',
-      title: 'Programas Sociales y Salud',
-      icon: <Heart size={20} className={styles.catIcon} />,
-      items: [
-        {
-          q: '¿Cómo me inscribo al Programa del Adulto Mayor?',
-          a: 'Debes presentar una solicitud escrita dirigida a la coordinación del programa, adjuntando copia de la cédula, recibo de energía y el certificado del Sisbén.'
-        },
-        {
-          q: '¿Cómo consulto mi puntaje del Sisbén?',
-          a: 'Aunque el trámite se puede iniciar en la oficina local del Sisbén en la Alcaldía, la consulta de la ficha técnica se hace directamente en el portal nacional del DNP.'
-        }
-      ]
-    },
-    {
       id: 'atencion',
       title: 'Atención al Ciudadano',
       icon: <PhoneCall size={20} className={styles.catIcon} />,
@@ -88,17 +58,6 @@ export default function FaqView() {
         }
       ]
     },
-    {
-      id: 'urbanismo',
-      title: 'Urbanismo y Planeación',
-      icon: <Building2 size={20} className={styles.catIcon} />,
-      items: [
-        {
-          q: '¿Cómo solicito una licencia de construcción o uso de suelo?',
-          a: 'Estos trámites se gestionan ante la Secretaría de Planeación. Muchos de los formularios y requisitos (como el certificado de estratificación) están disponibles para descarga en la sección de "Trámites".'
-        }
-      ]
-    }
   ];
 
   return (

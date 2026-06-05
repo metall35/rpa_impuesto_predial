@@ -29,7 +29,7 @@ export default function FechasPagoView() {
           <tbody>
             <tr>
               <td>Primer Trimestre</td>
-              <td className={styles.dateHighlight}>31 de Marzo</td>
+              <td className={styles.dateHighlight}>30 de Junio</td>
             </tr>
             <tr>
               <td>Segundo Trimestre</td>

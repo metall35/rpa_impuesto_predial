@@ -36,14 +36,14 @@ export default function QrPaymentCard({ paymentUrl, paymentQr }) {
           <Clock size={14} />
           <span>El pago y el código QR solo están disponibles por 10 minutos.</span>
         </div>
-        <button
+        {/* <button
           id="openPaymentModalBtn"
           className={styles.paymentButton}
           onClick={() => setIsModalOpen(true)}
         >
           <CreditCard size={18} />
           <span>Pagar en este dispositivo</span>
-        </button>
+        </button> */}
       </div>
 
       {isModalOpen && (

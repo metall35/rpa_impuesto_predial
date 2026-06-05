@@ -10,6 +10,7 @@ import FormView from './components/RpaFlow/FormView';
 import LoadingView from './components/RpaFlow/LoadingView';
 import ResultView from './components/RpaFlow/ResultView';
 import { useRpa } from './hooks/useRpa';
+import PrediosSelectorView from './components/RpaFlow/PrediosSelectorView';
 import styles from './App.module.css';
 
 function App() {
@@ -18,9 +19,14 @@ function App() {
 
   // Función para manejar el regreso al Home o restaurar el RPA
   const handleBack = () => {
-    if (view === 'copia_de_factura' && rpa.status !== 'idle') {
-      // Si está en carga o éxito, primero resetear el bot
-      rpa.reset();
+    if (view === 'copia_de_factura') {
+      if (rpa.status !== 'idle') {
+        // Si está en carga o éxito, primero resetear el bot
+        rpa.reset();
+      } else {
+        rpa.reset();
+        setView('home');
+      }
     } else {
       setView('home');
     }
@@ -80,6 +86,15 @@ function App() {
               <ResultView
                 result={rpa.result}
                 reset={rpa.reset}
+                printLocal={rpa.printLocal}
+              />
+            )}
+
+            {rpa.status === 'multiple_predios' && (
+              <PrediosSelectorView
+                predios={rpa.prediosList}
+                onSelect={rpa.handleSelectPredio}
+                onCancel={rpa.reset}
               />
             )}
           </div>
@@ -99,7 +114,10 @@ function App() {
           </button>
           
           <button 
-            onClick={() => setView('asistencia')} 
+            onClick={() => {
+              if (view === 'copia_de_factura') rpa.reset();
+              setView('asistencia');
+            }} 
             className={styles.kioskFloatHelpBtn} 
             title="Solicitar asistencia"
             id="kiosk-help-btn"
