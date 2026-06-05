@@ -46,6 +46,9 @@ class RpaThread(threading.Thread):
 # Almacén global de sesiones de navegador abiertas
 active_sessions = {}
 
+# Hilo global para reutilización de Playwright
+global_rpa_thread = RpaThread()
+
 def cleanup_expired_sessions():
     """Cierra y elimina las sesiones de navegador Playwright inactivas por más de 5 minutos."""
     now = time.time()
@@ -54,8 +57,7 @@ def cleanup_expired_sessions():
         print(f"Limpieza: Cerrando sesión expirada: {sid}")
         try:
             s = active_sessions[sid]
-            s["thread"].execute(close_session_objects, s["session_data"])
-            s["thread"].stop()
+            global_rpa_thread.execute(close_session_objects, s["session_data"])
         except Exception as e:
             print(f"Error al limpiar sesión expirada {sid}: {e}")
         del active_sessions[sid]
@@ -106,9 +108,8 @@ def generar_factura(
     phone: str = Form(...),
     email: str = Form(...)
 ):
-    session_thread = RpaThread()
     try:
-        result = session_thread.execute(run_rpa_start, search_type, search_value, phone, email)
+        result = global_rpa_thread.execute(run_rpa_start, search_type, search_value, phone, email)
         
         if result["status"] == "multiple_predios":
             session_id = str(uuid.uuid4())
@@ -116,7 +117,6 @@ def generar_factura(
             session_data["search_value"] = search_value
             active_sessions[session_id] = {
                 "session_data": session_data,
-                "thread": session_thread,
                 "timestamp": time.time()
             }
             
@@ -126,13 +126,10 @@ def generar_factura(
                 "predios": result["predios"]
             })
         elif result["status"] == "success":
-            session_thread.stop()
             return JSONResponse(status_code=200, content=result)
         else:
-            session_thread.stop()
             return JSONResponse(status_code=500, content=result)
     except Exception as e:
-        session_thread.stop()
         raise e
 
 @app.post("/api/seleccionar_predio")
@@ -152,19 +149,16 @@ def seleccionar_predio(
     del active_sessions[session_id]
     
     session_data = session_entry["session_data"]
-    session_thread = session_entry["thread"]
     search_value = session_data.get("search_value", "")
     
     try:
-        result = session_thread.execute(run_rpa_continue, session_data, index, search_value, phone, email)
-        session_thread.stop()
+        result = global_rpa_thread.execute(run_rpa_continue, session_data, index, search_value, phone, email)
         
         if result["status"] == "success":
             return JSONResponse(status_code=200, content=result)
         else:
             return JSONResponse(status_code=500, content=result)
     except Exception as e:
-        session_thread.stop()
         raise e
 
 @app.post("/api/imprimir_factura")

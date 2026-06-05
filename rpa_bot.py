@@ -1,7 +1,8 @@
 import os
 import time
+import urllib.request
+import json
 from dotenv import load_dotenv
-from twocaptcha import TwoCaptcha
 # pyrefly: ignore [missing-import]
 from playwright.sync_api import sync_playwright
 import qrcode
@@ -10,6 +11,15 @@ import base64
 
 # archivo .env
 load_dotenv()
+
+global_playwright = None
+global_browser = None
+
+def init_browser():
+    global global_playwright, global_browser
+    if not global_playwright:
+        global_playwright = sync_playwright().start()
+        global_browser = global_playwright.chromium.launch(headless=True, args=["--no-sandbox"])
 
 def close_session_objects(session_data):
     """Helper tool to close playwright browser context and stop playwright instance safely."""
@@ -22,16 +32,6 @@ def close_session_objects(session_data):
         if "context" in session_data and session_data["context"]:
             try:
                 session_data["context"].close()
-            except:
-                pass
-        if "browser" in session_data and session_data["browser"]:
-            try:
-                session_data["browser"].close()
-            except:
-                pass
-        if "playwright" in session_data and session_data["playwright"]:
-            try:
-                session_data["playwright"].stop()
             except:
                 pass
     except Exception as e:
@@ -61,9 +61,8 @@ def complete_invoice_generation(page, context, search_value, phone, email):
     except Exception as le:
         print(f"Advertencia al esperar el panel de carga: {le}")
     
-    # Espera a que cargue
-    print("Esperando 3 segundos...")
-    time.sleep(3)
+    # Es necesario un pequeño tiempo de espera para que JavaScript termine de renderizar y adjuntar eventos.
+    page.wait_for_timeout(3000)
     
     btn_generar_principal = page.locator("text=Generar Factura").first
     btn_generar_principal.wait_for(state="visible", timeout=10000)
@@ -77,25 +76,16 @@ def complete_invoice_generation(page, context, search_value, phone, email):
         page.locator("text=Imprimir Factura").wait_for(state="visible", timeout=15000)
         
     print("Esperando a que se carguen los datos...")
-    factura_cargada = False
-    for attempt in range(40):
-        try:
-            inputs = page.locator("input")
-            count = inputs.count()
-            for i in range(count):
-                val = inputs.nth(i).input_value()
-                # comprueba si hay datos
-                if "$" in val or (val.isdigit() and len(val) >= 5):
-                    print(f"¡Datos de factura detectados! Valor encontrado: {val}")
-                    factura_cargada = True
-                    break
-        except Exception as e:
-            print(f"Error al leer inputs: {e}")
-        if factura_cargada:
-            break
-        page.wait_for_timeout(500)
-    
-    if not factura_cargada:
+    try:
+        # Espera nativa revisando específicamente el símbolo $ para evitar el falso positivo con la cédula en la caja de búsqueda.
+        page.wait_for_function("""
+            () => {
+                const inputs = Array.from(document.querySelectorAll('input'));
+                return inputs.some(input => input.value.includes('$'));
+            }
+        """, timeout=20000)
+        print("¡Datos de factura detectados!")
+    except Exception as e:
         print("Advertencia: No se detectaron datos de la factura cargados, procediendo de todos modos...")
     
     #llena telefono y correo
@@ -120,6 +110,9 @@ def complete_invoice_generation(page, context, search_value, phone, email):
         
     page.on("download", on_download)
     context.on("page", on_popup)
+    
+    # Es necesario un pequeño tiempo de espera para que JavaScript termine de renderizar y adjuntar eventos.
+    page.wait_for_timeout(3000)
     
     # Asegurar que el botón sea visible y clickeable
     btn_imprimir = page.locator("text='Imprimir Factura'").first
@@ -160,8 +153,9 @@ def complete_invoice_generation(page, context, search_value, phone, email):
     # 2. Hacer clic en el botón Descargar Recibo para iniciar la descarga del PDF
     btn_descargar.click()
 
-    for _ in range(80):
-        page.wait_for_timeout(500)
+    # Optimizamos el ciclo de espera, comprobando cada 100ms en lugar de 500ms
+    for _ in range(150):
+        page.wait_for_timeout(100)
         if download_obj or popup_page:
             break
     
@@ -275,21 +269,15 @@ def run_rpa_start(search_type, search_value, phone, email):
     """Phase 1: Start playwright, solve captcha, submit search, check for multiple predios."""
     import threading
     print(f"THREAD DEBUG [start]: Running in {threading.current_thread().name} (ID: {threading.current_thread().ident})")
-    api_key = os.getenv("TWOCAPTCHA_API_KEY")
+    api_key = os.getenv("CAPMONSTER_API_KEY")
     if not api_key:
-        print("ADVERTENCIA: No se encontró la API Key de 2Captcha en el archivo .env")
-        solver = None
-    else:
-        solver = TwoCaptcha(api_key)
+        print("ADVERTENCIA: No se encontró la API Key de CAPMONSTER en el archivo .env")
     
-    p = sync_playwright().start()
-    browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
-    context = browser.new_context(accept_downloads=True)
+    init_browser()
+    context = global_browser.new_context(accept_downloads=True)
     page = context.new_page()
 
     session_data = {
-        "playwright": p,
-        "browser": browser,
         "context": context,
         "page": page,
         "timestamp": time.time()
@@ -297,6 +285,14 @@ def run_rpa_start(search_type, search_value, phone, email):
 
     try:
         print("Navegando al portal...")
+        
+        def intercept_resources(route):
+            if route.request.resource_type in ["image", "media", "font"]:
+                route.abort()
+            else:
+                route.continue_()
+                
+        page.route("**/*", intercept_resources)
         page.goto("https://oficinavirtual.apartado-antioquia.gov.co/Predial/Index", wait_until="domcontentloaded", timeout=60000)
         
         page.get_by_text(search_type, exact=True).first.wait_for(state="visible", timeout=40000)
@@ -305,8 +301,8 @@ def run_rpa_start(search_type, search_value, phone, email):
         page.locator('input[type="text"]').first.fill(search_value)
 
         # captcha
-        if solver:
-            print("Resolviendo reCAPTCHA con 2Captcha...")
+        if api_key:
+            print("Resolviendo reCAPTCHA con CAPMONSTER...")
             try:
                 sitekey_element = page.locator(".g-recaptcha")
                 if sitekey_element.count() > 0:
@@ -315,21 +311,62 @@ def run_rpa_start(search_type, search_value, phone, email):
                     sitekey = "6LcfN70UAAAAADa89KIZRMMo8CWSXPrOVsElAZd_"
                 
                 print(f"Sitekey detectada: {sitekey}")
-                print("Enviando captcha a 2Captcha...")
+                print("Enviando captcha a CAPMONSTER...")
                 
-                result = solver.recaptcha(
-                    sitekey=sitekey,
-                    url=page.url
-                )
-                token = result['code']
-                print("¡Captcha resuelto exitosamente por 2Captcha!")
+                create_task_url = "https://api.capmonster.cloud/createTask"
+                get_result_url = "https://api.capmonster.cloud/getTaskResult"
+                
+                task_payload = {
+                    "clientKey": api_key,
+                    "task": {
+                        "type": "NoCaptchaTaskProxyless",
+                        "websiteURL": page.url,
+                        "websiteKey": sitekey
+                    }
+                }
+                
+                req = urllib.request.Request(create_task_url, data=json.dumps(task_payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
+                with urllib.request.urlopen(req) as response:
+                    res = json.loads(response.read().decode('utf-8'))
+                    if res.get("errorId") != 0:
+                        raise Exception(f"Error creando tarea en CAPMONSTER: {res}")
+                    task_id = res.get("taskId")
+                
+                print(f"Tarea creada en CAPMONSTER, ID: {task_id}. Esperando resultado...")
+                
+                token = None
+                for _ in range(24): # Esperar hasta 120 segundos
+                    time.sleep(5)
+                    result_payload = {
+                        "clientKey": api_key,
+                        "taskId": task_id
+                    }
+                    req2 = urllib.request.Request(get_result_url, data=json.dumps(result_payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
+                    with urllib.request.urlopen(req2) as response2:
+                        res2 = json.loads(response2.read().decode('utf-8'))
+                        if res2.get("errorId") != 0:
+                            raise Exception(f"Error obteniendo resultado de CAPMONSTER: {res2}")
+                        
+                        status = res2.get("status")
+                        if status == "ready":
+                            token = res2.get("solution").get("gRecaptchaResponse")
+                            break
+                        elif status == "processing":
+                            continue
+                        else:
+                            raise Exception(f"Estado desconocido devuelto por CAPMONSTER: {status}")
+                            
+                if not token:
+                    raise Exception("Timeout esperando que CAPMONSTER resuelva el captcha.")
+                    
+                print("¡Captcha resuelto exitosamente por CAPMONSTER!")
                 
                 page.evaluate(f'document.getElementById("g-recaptcha-response").innerHTML = "{token}";')
                 page.evaluate(f'document.getElementById("g-recaptcha-response").value = "{token}";')
                 page.evaluate(f'document.getElementsByName("g-recaptcha-response")[0].value = "{token}";')
                 time.sleep(1)
             except Exception as e:
-                raise Exception(f"Error al resolver el captcha a través de 2Captcha: {e}")
+                raise Exception(f"Error al resolver el captcha a través de CAPMONSTER: {e}")
         else:
             print("Intentando hacer clic en el reCAPTCHA de forma manual/física...")
             try:
