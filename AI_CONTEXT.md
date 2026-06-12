@@ -9,11 +9,11 @@ Este documento sirve para mantener el contexto de los avances y optimizaciones d
 - **Resolución de Captcha:** Migrado de 2Captcha a **CapMonster** (API directa vía `urllib.request` sin dependencias externas).
 
 ## Optimizaciones Implementadas (Última Sesión)
-Se atacó directamente el problema de los altos tiempos de respuesta y consumo de recursos.
-1. **Reemplazo a CapMonster**: Eliminación de la dependencia `2captcha-python`. Integración nativa que maneja el ReCAPTCHA v2 de la página usando la variable `CAPMONSTER_API_KEY` del archivo `.env`.
-2. **Browser Pooling (Singleton)**: En lugar de instanciar un navegador pesado (Chromium) en cada petición a `/api/generar_factura`, ahora existe un hilo global (`global_rpa_thread`) en `app.py`. Este hilo arranca Chromium una sola vez y lo mantiene vivo, creando únicamente un nuevo `context` y `page` por petición.
-3. **Bloqueo de Recursos Nativos**: Se configuró `page.route` para abortar la descarga de imágenes, media y fuentes, reduciendo el ancho de banda y el tiempo de renderizado de la página oficial.
-4. **Refinamiento de Esperas Nativas**: Se eliminaron los bucles manuales de Python (`time.sleep`) y se cambiaron por `page.wait_for_function`. Esto permite saber en milisegundos cuándo el portal carga los datos buscando un símbolo `$`, reduciendo los reintentos fallidos a la hora de hacer clics y minimizando tiempos muertos.
+Se atacó directamente el problema de los altos tiempos de respuesta, consumo de recursos en servidor y fugas de memoria.
+1. **Reemplazo a CAPSOLVER (Concurrente)**: Se reemplazó 2Captcha/Capmonster por la API directa de Capsolver (ProxyLess). Ahora el captcha se resuelve en un hilo secundario (`ThreadPoolExecutor`) al mismo tiempo que Playwright navega hacia la URL principal, traslapando tiempos muertos de carga.
+2. **Browser Pooling Global**: Se resolvió la fuga de memoria de Chromium modificando `RpaThread` en `app.py`. Ahora Playwright y Chromium se instancian *una sola vez* al arrancar el servidor. Para cada petición, se abre un `Context` y `Page` ligero que se cierra siempre mediante `close_session_objects()`, conservando intacto el `Browser` raíz.
+3. **Bloqueo de Recursos Nativos Ajustado**: Se configuró `page.route` para abortar la descarga de imágenes, media y fuentes, reduciendo el ancho de banda. *Nota Crítica:* **Nunca** se deben bloquear los `stylesheet` (CSS), ya que el portal oficial usa DevExpress y depende del CSS para calcular posiciones; bloquearlo provoca que los clics fallen al no mostrarse los modals correctamente.
+4. **Rescate de Hooks y Frontend Build**: Se restauró exitosamente `useRpa.js` desde commits anteriores, reparando errores del frontend, y se generó un nuevo build en la carpeta `dist`.
 
 ## Próximos Pasos (Pendientes)
 El código ya fue commiteado. Lo siguiente a trabajar es continuar optimizando la "Fase 2" (cuando el usuario ya seleccionó el predio o se carga el predio único).

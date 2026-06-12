@@ -23,15 +23,25 @@ class RpaThread(threading.Thread):
         self.start()
         
     def run(self):
-        while True:
-            func, args, kwargs = self.cmd_queue.get()
-            if func is None:
-                break
-            try:
-                res = func(*args, **kwargs)
-                self.resp_queue.put((res, None))
-            except Exception as e:
-                self.resp_queue.put((None, e))
+        from playwright.sync_api import sync_playwright
+        print("THREAD DEBUG: Inicializando Playwright y Browser global...")
+        with sync_playwright() as p:
+            self.playwright = p
+            self.browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
+            print("THREAD DEBUG: Browser global inicializado exitosamente.")
+            while True:
+                func, args, kwargs = self.cmd_queue.get()
+                if func is None:
+                    break
+                try:
+                    # Inyectar el browser global si la función es run_rpa_start
+                    if func.__name__ == 'run_rpa_start':
+                        res = func(self.browser, *args, **kwargs)
+                    else:
+                        res = func(*args, **kwargs)
+                    self.resp_queue.put((res, None))
+                except Exception as e:
+                    self.resp_queue.put((None, e))
                 
     def execute(self, func, *args, **kwargs):
         self.cmd_queue.put((func, args, kwargs))

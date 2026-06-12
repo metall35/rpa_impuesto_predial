@@ -12,14 +12,6 @@ import base64
 # archivo .env
 load_dotenv()
 
-global_playwright = None
-global_browser = None
-
-def init_browser():
-    global global_playwright, global_browser
-    if not global_playwright:
-        global_playwright = sync_playwright().start()
-        global_browser = global_playwright.chromium.launch(headless=True, args=["--no-sandbox"])
 
 def close_session_objects(session_data):
     """Helper tool to close playwright browser context and stop playwright instance safely."""
@@ -289,16 +281,50 @@ def complete_invoice_generation(page, context, search_value, phone, email):
         "payment_qr": payment_qr
     }
 
-def run_rpa_start(search_type, search_value, phone, email):
+def solve_captcha_worker(api_key, sitekey, page_url):
+    """Resuelve el captcha en segundo plano para no bloquear a Playwright"""
+    print("Enviando captcha a CAPSOLVER en segundo plano...")
+    try:
+        task_payload = {
+            "clientKey": api_key,
+            "task": {
+                "type": "ReCaptchaV2TaskProxyLess",
+                "websiteURL": page_url,
+                "websiteKey": sitekey
+            }
+        }
+        
+        req = urllib.request.Request("https://api.capsolver.com/createTask", data=json.dumps(task_payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req) as response:
+            res = json.loads(response.read().decode('utf-8'))
+            task_id = res.get("taskId")
+        
+        token = None
+        for _ in range(24): # Máximo ~2 min
+            time.sleep(5)
+            result_payload = {"clientKey": api_key, "taskId": task_id}
+            req2 = urllib.request.Request("https://api.capsolver.com/getTaskResult", data=json.dumps(result_payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req2) as response2:
+                res2 = json.loads(response2.read().decode('utf-8'))
+                status = res2.get("status")
+                if status == "ready":
+                    token = res2.get("solution").get("gRecaptchaResponse")
+                    break
+        return token
+    except Exception as e:
+        print(f"Error en worker de CAPSOLVER: {e}")
+        return None
+
+def run_rpa_start(browser, search_type, search_value, phone, email):
     """Phase 1: Start playwright, solve captcha, submit search, check for multiple predios."""
     import threading
+    import concurrent.futures
     print(f"THREAD DEBUG [start]: Running in {threading.current_thread().name} (ID: {threading.current_thread().ident})")
     api_key = os.getenv("CAPSOLVER_API_KEY")
     if not api_key:
         print("ADVERTENCIA: No se encontró la API Key de CAPSOLVER en el archivo .env")
     
-    init_browser()
-    context = global_browser.new_context(accept_downloads=True)
+    context = browser.new_context(accept_downloads=True)
     page = context.new_page()
 
     session_data = {
@@ -308,16 +334,26 @@ def run_rpa_start(search_type, search_value, phone, email):
     }
 
     try:
+        captcha_future = None
+        target_url = "https://oficinavirtual.apartado-antioquia.gov.co/Predial/Index"
+        
+        if api_key:
+            # Iniciamos el worker de capsolver concurrentemente con la navegación
+            sitekey_estatica = "6LcfN70UAAAAADa89KIZRMMo8CWSXPrOVsElAZd_"
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            captcha_future = executor.submit(solve_captcha_worker, api_key, sitekey_estatica, target_url)
+
         print("Navegando al portal...")
         
         def intercept_resources(route):
+            # No bloquear stylesheet porque DevExpress rompe sus modals (calcula posiciones con JS basado en CSS)
             if route.request.resource_type in ["image", "media", "font"]:
                 route.abort()
             else:
                 route.continue_()
                 
         page.route("**/*", intercept_resources)
-        page.goto("https://oficinavirtual.apartado-antioquia.gov.co/Predial/Index", wait_until="domcontentloaded", timeout=60000)
+        page.goto(target_url, wait_until="domcontentloaded", timeout=60000)
         
         # Mapear tipos comunes al nombre del radio button en Apartadó
         search_type_mapped = search_type
@@ -330,72 +366,22 @@ def run_rpa_start(search_type, search_value, phone, email):
         page.locator('input[type="text"]').first.fill(search_value)
 
         # captcha
-        if api_key:
-            print("Resolviendo reCAPTCHA con CAPSOLVER...")
-            try:
-                sitekey_element = page.locator(".g-recaptcha")
-                if sitekey_element.count() > 0:
-                    sitekey = sitekey_element.get_attribute("data-sitekey")
-                else:
-                    sitekey = "6LcfN70UAAAAADa89KIZRMMo8CWSXPrOVsElAZd_"
-                
-                print(f"Sitekey detectada: {sitekey}")
-                print("Enviando captcha a CAPSOLVER...")
-                
-                create_task_url = "https://api.capsolver.com/createTask"
-                get_result_url = "https://api.capsolver.com/getTaskResult"
-                
-                task_payload = {
-                    "clientKey": api_key,
-                    "task": {
-                        "type": "ReCaptchaV2TaskProxyLess",
-                        "websiteURL": page.url,
-                        "websiteKey": sitekey
-                    }
-                }
-                
-                req = urllib.request.Request(create_task_url, data=json.dumps(task_payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
-                with urllib.request.urlopen(req) as response:
-                    res = json.loads(response.read().decode('utf-8'))
-                    if res.get("errorId") != 0:
-                        raise Exception(f"Error creando tarea en CAPSOLVER: {res}")
-                    task_id = res.get("taskId")
-                
-                print(f"Tarea creada en CAPSOLVER, ID: {task_id}. Esperando resultado...")
-                
-                token = None
-                for _ in range(24): # Esperar hasta 120 segundos
-                    time.sleep(5)
-                    result_payload = {
-                        "clientKey": api_key,
-                        "taskId": task_id
-                    }
-                    req2 = urllib.request.Request(get_result_url, data=json.dumps(result_payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
-                    with urllib.request.urlopen(req2) as response2:
-                        res2 = json.loads(response2.read().decode('utf-8'))
-                        if res2.get("errorId") != 0:
-                            raise Exception(f"Error obteniendo resultado de CAPSOLVER: {res2}")
-                        
-                        status = res2.get("status")
-                        if status == "ready":
-                            token = res2.get("solution").get("gRecaptchaResponse")
-                            break
-                        elif status == "processing":
-                            continue
-                        else:
-                            raise Exception(f"Estado desconocido devuelto por CAPSOLVER: {status}")
-                            
-                if not token:
-                    raise Exception("Timeout esperando que CAPSOLVER resuelva el captcha.")
-                    
+        if api_key and captcha_future:
+            print("Esperando resolución concurrente del reCAPTCHA...")
+            token = captcha_future.result(timeout=120)
+            
+            if token:
                 print("¡Captcha resuelto exitosamente por CAPSOLVER!")
-                
-                page.evaluate(f'document.getElementById("g-recaptcha-response").innerHTML = "{token}";')
-                page.evaluate(f'document.getElementById("g-recaptcha-response").value = "{token}";')
-                page.evaluate(f'document.getElementsByName("g-recaptcha-response")[0].value = "{token}";')
-                time.sleep(1)
-            except Exception as e:
-                raise Exception(f"Error al resolver el captcha a través de CAPSOLVER: {e}")
+                try:
+                    # Inyectar el token en la página
+                    page.evaluate(f'document.getElementById("g-recaptcha-response").innerHTML = "{token}";')
+                    page.evaluate(f'document.getElementById("g-recaptcha-response").value = "{token}";')
+                    page.evaluate(f'document.getElementsByName("g-recaptcha-response")[0].value = "{token}";')
+                    time.sleep(1)
+                except Exception as e:
+                    raise Exception(f"Error al inyectar el token resuelto: {e}")
+            else:
+                raise Exception("El worker de CAPSOLVER retornó None o falló.")
         else:
             print("Intentando hacer clic en el reCAPTCHA de forma manual/física...")
             try:
@@ -504,7 +490,7 @@ def run_rpa_start(search_type, search_value, phone, email):
 
     except Exception as e:
         try:
-            page.screenshot(path="error_pantalla.png")
+            # page.screenshot(path="error_pantalla.png")
             print("Captura de pantalla de error guardada en error_pantalla.png")
         except Exception as se:
             print(f"No se pudo guardar captura de pantalla: {se}")
