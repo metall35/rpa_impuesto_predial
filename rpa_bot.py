@@ -66,15 +66,17 @@ def complete_invoice_generation(page, context, search_value, phone, email):
     # Es necesario un pequeño tiempo de espera para que JavaScript termine de renderizar y adjuntar eventos.
     page.wait_for_timeout(3000)
     
-    btn_generar_principal = page.locator("text=Generar Factura").locator("visible=true").first
-    btn_generar_principal.wait_for(state="visible", timeout=10000)
-    
     try:
-        page.locator(".dx-overlay-shader").first.wait_for(state="hidden", timeout=5000)
-    except:
-        pass
-        
-    btn_generar_principal.click(force=True)
+        page.locator("text='Imprimir Factura', text='Generar Factura'").locator("visible=true").first.wait_for(state="visible", timeout=15000)
+        btn_generar_principal = page.locator("text='Generar Factura'").locator("visible=true").first
+        if btn_generar_principal.is_visible():
+            try:
+                page.locator(".dx-overlay-shader").first.wait_for(state="hidden", timeout=5000)
+            except:
+                pass
+            btn_generar_principal.click(force=True)
+    except Exception as e:
+        print(f"Advertencia al procesar Generar Factura principal: {e}")
 
     try:
         page.locator("text='Imprimir Factura'").wait_for(state="visible", timeout=8000)
@@ -373,10 +375,35 @@ def run_rpa_start(browser, search_type, search_value, phone, email):
             if token:
                 print("¡Captcha resuelto exitosamente por CAPSOLVER!")
                 try:
-                    # Inyectar el token en la página
-                    page.evaluate(f'document.getElementById("g-recaptcha-response").innerHTML = "{token}";')
-                    page.evaluate(f'document.getElementById("g-recaptcha-response").value = "{token}";')
-                    page.evaluate(f'document.getElementsByName("g-recaptcha-response")[0].value = "{token}";')
+                    # Esperar a que el textarea del captcha se agregue al DOM
+                    try:
+                        page.wait_for_selector("#g-recaptcha-response", state="attached", timeout=15000)
+                    except:
+                        pass
+                        
+                    # Inyectar el token en la página de forma segura
+                    page.evaluate(f'''
+                        var el = document.getElementById("g-recaptcha-response");
+                        if (el) {{
+                            el.innerHTML = "{token}";
+                            el.value = "{token}";
+                        }}
+                        var els = document.getElementsByName("g-recaptcha-response");
+                        if (els.length > 0) {{
+                            els[0].value = "{token}";
+                        }}
+                    ''')
+                    
+                    # Sobrescribir grecaptcha.getResponse para que la validación del cliente pase
+                    page.evaluate(f'''
+                        if (typeof grecaptcha !== "undefined") {{
+                            grecaptcha.getResponse = function() {{ return "{token}"; }};
+                        }} else {{
+                            window.grecaptcha = {{
+                                getResponse: function() {{ return "{token}"; }}
+                            }};
+                        }}
+                    ''')
                     time.sleep(1)
                 except Exception as e:
                     raise Exception(f"Error al inyectar el token resuelto: {e}")
@@ -523,7 +550,7 @@ def run_rpa_continue(session_data, predio_index, search_value, phone, email):
         btn_continuar.click()
         
         # Esperar a que cargue la Ventanilla de Atención
-        page.locator("text=Ventanilla de Atención").wait_for(state="visible", timeout=20000)
+        # page.locator("text=Ventanilla de Atención").wait_for(state="visible", timeout=20000)
         
         # Ejecutar generación de factura
         result = complete_invoice_generation(page, context, search_value, phone, email)
