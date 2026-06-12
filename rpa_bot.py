@@ -40,7 +40,17 @@ def close_session_objects(session_data):
 def complete_invoice_generation(page, context, search_value, phone, email):
     """Helper to complete the invoice generation after selecting/landing on a single predio."""
     print("Cargó información del predio. Generando factura...")
-    page.locator("text='Generar Factura'").first.click()
+    # Esperar a que el shader (overlay de carga) del DevExpress desaparezca antes de hacer clic
+    try:
+        page.locator(".dx-overlay-shader").first.wait_for(state="hidden", timeout=10000)
+    except:
+        pass
+        
+    try:
+        # Usar visible=true para asegurarnos de no hacer force click en un span o botón oculto
+        page.locator("text='Generar Factura'").locator("visible=true").first.click()
+    except Exception as e:
+        print(f"Error al hacer clic inicial en Generar Factura: {e}")
 
     try:
         page.locator("text=Seleccione el Período de Generación").wait_for(state="visible", timeout=15000)
@@ -64,16 +74,22 @@ def complete_invoice_generation(page, context, search_value, phone, email):
     # Es necesario un pequeño tiempo de espera para que JavaScript termine de renderizar y adjuntar eventos.
     page.wait_for_timeout(3000)
     
-    btn_generar_principal = page.locator("text=Generar Factura").first
+    btn_generar_principal = page.locator("text=Generar Factura").locator("visible=true").first
     btn_generar_principal.wait_for(state="visible", timeout=10000)
-    btn_generar_principal.click()
+    
+    try:
+        page.locator(".dx-overlay-shader").first.wait_for(state="hidden", timeout=5000)
+    except:
+        pass
+        
+    btn_generar_principal.click(force=True)
 
     try:
-        page.locator("text=Imprimir Factura").wait_for(state="visible", timeout=8000)
+        page.locator("text='Imprimir Factura'").wait_for(state="visible", timeout=8000)
     except Exception:
         print("No apareció el botón 'Imprimir Factura'. Es posible que el clic anterior no se haya registrado. Reintentando...")
-        btn_generar_principal.click()
-        page.locator("text=Imprimir Factura").wait_for(state="visible", timeout=15000)
+        btn_generar_principal.click(force=True)
+        page.locator("text='Imprimir Factura'").wait_for(state="visible", timeout=15000)
         
     print("Esperando a que se carguen los datos...")
     try:
@@ -115,22 +131,30 @@ def complete_invoice_generation(page, context, search_value, phone, email):
     page.wait_for_timeout(3000)
     
     # Asegurar que el botón sea visible y clickeable
+    # Buscamos de manera explícita "Imprimir Factura" en lugar de un regex con "Generar" que podría traer el botón anterior
     btn_imprimir = page.locator("text='Imprimir Factura'").first
-    btn_imprimir.wait_for(state="visible", timeout=10000)
+    try:
+        btn_imprimir.wait_for(state="visible", timeout=10000)
+    except:
+        # Fallback en caso de que aún diga Generar Factura en alguna vista
+        btn_imprimir = page.locator("text='Generar Factura'").nth(1)
 
     # Esperar a que aparezca la modal de Éxito con el botón
     btn_descargar = page.locator("text='Descargar recibo'").first
     
     exito_modal_visible = False
     for retry in range(3):
-        print(f"Haciendo clic en el botón 'Imprimir Factura' (Intento {retry + 1})...")
+        print(f"Haciendo clic en el botón de factura (Intento {retry + 1})...")
         try:
-            btn_imprimir.click()
+            # Asegurar hacer hover o enfocar antes del clic para evitar elementos sobrepuestos
+            btn_imprimir.scroll_into_view_if_needed()
+            page.wait_for_timeout(500)
+            btn_imprimir.click(force=True)
         except Exception as click_err:
-            print(f"Error al hacer clic en Imprimir Factura: {click_err}")
+            print(f"Error al hacer clic en el botón de factura: {click_err}")
         
         try:
-            btn_descargar.wait_for(state="visible", timeout=6000)
+            btn_descargar.wait_for(state="visible", timeout=8000)
             exito_modal_visible = True
             break
         except Exception:
@@ -269,9 +293,9 @@ def run_rpa_start(search_type, search_value, phone, email):
     """Phase 1: Start playwright, solve captcha, submit search, check for multiple predios."""
     import threading
     print(f"THREAD DEBUG [start]: Running in {threading.current_thread().name} (ID: {threading.current_thread().ident})")
-    api_key = os.getenv("CAPMONSTER_API_KEY")
+    api_key = os.getenv("CAPSOLVER_API_KEY")
     if not api_key:
-        print("ADVERTENCIA: No se encontró la API Key de CAPMONSTER en el archivo .env")
+        print("ADVERTENCIA: No se encontró la API Key de CAPSOLVER en el archivo .env")
     
     init_browser()
     context = global_browser.new_context(accept_downloads=True)
@@ -295,14 +319,19 @@ def run_rpa_start(search_type, search_value, phone, email):
         page.route("**/*", intercept_resources)
         page.goto("https://oficinavirtual.apartado-antioquia.gov.co/Predial/Index", wait_until="domcontentloaded", timeout=60000)
         
-        page.get_by_text(search_type, exact=True).first.wait_for(state="visible", timeout=40000)
-        page.get_by_text(search_type, exact=True).first.click()
+        # Mapear tipos comunes al nombre del radio button en Apartadó
+        search_type_mapped = search_type
+        if search_type in ["Documento", "Cédula", "Cedula"]:
+            search_type_mapped = "Propietario"
+            
+        page.get_by_text(search_type_mapped, exact=True).first.wait_for(state="visible", timeout=40000)
+        page.get_by_text(search_type_mapped, exact=True).first.click()
         
         page.locator('input[type="text"]').first.fill(search_value)
 
         # captcha
         if api_key:
-            print("Resolviendo reCAPTCHA con CAPMONSTER...")
+            print("Resolviendo reCAPTCHA con CAPSOLVER...")
             try:
                 sitekey_element = page.locator(".g-recaptcha")
                 if sitekey_element.count() > 0:
@@ -311,15 +340,15 @@ def run_rpa_start(search_type, search_value, phone, email):
                     sitekey = "6LcfN70UAAAAADa89KIZRMMo8CWSXPrOVsElAZd_"
                 
                 print(f"Sitekey detectada: {sitekey}")
-                print("Enviando captcha a CAPMONSTER...")
+                print("Enviando captcha a CAPSOLVER...")
                 
-                create_task_url = "https://api.capmonster.cloud/createTask"
-                get_result_url = "https://api.capmonster.cloud/getTaskResult"
+                create_task_url = "https://api.capsolver.com/createTask"
+                get_result_url = "https://api.capsolver.com/getTaskResult"
                 
                 task_payload = {
                     "clientKey": api_key,
                     "task": {
-                        "type": "NoCaptchaTaskProxyless",
+                        "type": "ReCaptchaV2TaskProxyLess",
                         "websiteURL": page.url,
                         "websiteKey": sitekey
                     }
@@ -329,10 +358,10 @@ def run_rpa_start(search_type, search_value, phone, email):
                 with urllib.request.urlopen(req) as response:
                     res = json.loads(response.read().decode('utf-8'))
                     if res.get("errorId") != 0:
-                        raise Exception(f"Error creando tarea en CAPMONSTER: {res}")
+                        raise Exception(f"Error creando tarea en CAPSOLVER: {res}")
                     task_id = res.get("taskId")
                 
-                print(f"Tarea creada en CAPMONSTER, ID: {task_id}. Esperando resultado...")
+                print(f"Tarea creada en CAPSOLVER, ID: {task_id}. Esperando resultado...")
                 
                 token = None
                 for _ in range(24): # Esperar hasta 120 segundos
@@ -345,7 +374,7 @@ def run_rpa_start(search_type, search_value, phone, email):
                     with urllib.request.urlopen(req2) as response2:
                         res2 = json.loads(response2.read().decode('utf-8'))
                         if res2.get("errorId") != 0:
-                            raise Exception(f"Error obteniendo resultado de CAPMONSTER: {res2}")
+                            raise Exception(f"Error obteniendo resultado de CAPSOLVER: {res2}")
                         
                         status = res2.get("status")
                         if status == "ready":
@@ -354,19 +383,19 @@ def run_rpa_start(search_type, search_value, phone, email):
                         elif status == "processing":
                             continue
                         else:
-                            raise Exception(f"Estado desconocido devuelto por CAPMONSTER: {status}")
+                            raise Exception(f"Estado desconocido devuelto por CAPSOLVER: {status}")
                             
                 if not token:
-                    raise Exception("Timeout esperando que CAPMONSTER resuelva el captcha.")
+                    raise Exception("Timeout esperando que CAPSOLVER resuelva el captcha.")
                     
-                print("¡Captcha resuelto exitosamente por CAPMONSTER!")
+                print("¡Captcha resuelto exitosamente por CAPSOLVER!")
                 
                 page.evaluate(f'document.getElementById("g-recaptcha-response").innerHTML = "{token}";')
                 page.evaluate(f'document.getElementById("g-recaptcha-response").value = "{token}";')
                 page.evaluate(f'document.getElementsByName("g-recaptcha-response")[0].value = "{token}";')
                 time.sleep(1)
             except Exception as e:
-                raise Exception(f"Error al resolver el captcha a través de CAPMONSTER: {e}")
+                raise Exception(f"Error al resolver el captcha a través de CAPSOLVER: {e}")
         else:
             print("Intentando hacer clic en el reCAPTCHA de forma manual/física...")
             try:
@@ -407,9 +436,15 @@ def run_rpa_start(search_type, search_value, phone, email):
             
             # Esperar a que las filas de datos de DevExpress estén visibles
             try:
-                page.locator(".dx-data-row").first.wait_for(state="visible", timeout=15000)
+                page.wait_for_selector(".dx-data-row", state="visible", timeout=20000)
+                page.wait_for_timeout(1000) # Dar un pequeño margen extra tras aparecer la fila
             except Exception as e:
-                print(f"Advertencia al esperar las filas del grid: {e}")
+                print(f"Advertencia al esperar las filas del grid (.dx-data-row): {e}")
+            
+            try:
+                page.screenshot(path="debug_multiple_predios.png")
+            except Exception:
+                pass
             
             # Ejecutar script en el navegador para extraer la tabla
             table_data = page.evaluate("""() => {

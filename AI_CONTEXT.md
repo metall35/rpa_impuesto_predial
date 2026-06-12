@@ -21,3 +21,8 @@ El código ya fue commiteado. Lo siguiente a trabajar es continuar optimizando l
 **Ideas a explorar:**
 - **Bypass de Modales y Clics Físicos:** El código actual simula un humano haciendo clic en *"Imprimir Factura"*, *"Descargar Recibo"* y *"Pagar en Línea"*. Al interactuar visualmente, hay pausas o fallos si la página se queda congelada.
 - **El Objetivo:** Usar Playwright para interceptar o leer los atributos ocultos (ej. funciones JS `_doPostBack` o enlaces `/DownloadPDF`) de manera que el bot haga directamente una petición HTTP de descarga del PDF de la factura y extraiga la URL de pago sin tener que forzar clics en la interfaz, saltándose la renderización de las animaciones del portal.
+
+## Optimizaciones de Sincronización (Solución de Múltiples Predios Vacíos)
+Se identificó y corrigió un problema donde el frontend recibía la respuesta de `"predios": []` a pesar de que el portal oficial mostraba varios resultados. 
+1. **Espera Inteligente de Filas AJAX:** El scraper se modificó para esperar explícitamente el selector `.dx-data-row` con `page.wait_for_selector` (hasta 20 segundos) en vez de usar un `page.wait_for_timeout(3000)` arbitrario, lo que garantiza que los datos asíncronos de la tabla DevExpress siempre se extraigan una vez que el DOM los renderice, incluso con red lenta.
+2. **Mapeo de Tipos de Búsqueda:** Se incluyó un mapeo de los términos `"Documento"` y `"Cédula"` (enviados desde el frontend) a `"Propietario"`, que es el label exacto del *radio button* que existe en el HTML del portal de Apartadó. Esto previene los Timeouts de Playwright al momento de localizar la opción a seleccionar.
