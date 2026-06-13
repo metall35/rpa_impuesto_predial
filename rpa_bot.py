@@ -32,6 +32,8 @@ def close_session_objects(session_data):
 def complete_invoice_generation(page, context, search_value, phone, email):
     """Helper to complete the invoice generation after selecting/landing on a single predio."""
     print("Cargó información del predio. Generando factura...")
+    _t_fase0 = time.time()
+    print(f"[TIMING] Inicio complete_invoice_generation t0={_t_fase0:.2f}")
     # Esperar a que el shader (overlay de carga) del DevExpress desaparezca antes de hacer clic
     try:
         page.locator(".dx-overlay-shader").first.wait_for(state="hidden", timeout=10000)
@@ -53,37 +55,66 @@ def complete_invoice_generation(page, context, search_value, phone, email):
     btn_generar_modal.wait_for(state="visible", timeout=10000)
     btn_generar_modal.click()
 
+    # CUT 4: timeouts recortados (solo aceleran detección de fallo; el camino feliz sale al ocultarse
+    # el elemento). El loadpanel (generación AJAX pesada, load-bearing) se mantiene en 15000.
     try:
-        page.locator(".dx-overlay-content, .dx-popup-content, [role='dialog']").wait_for(state="hidden", timeout=10000)
+        page.locator(".dx-overlay-content, .dx-popup-content, [role='dialog']").wait_for(state="hidden", timeout=5000)
     except:
         pass
-    
+
     try:
         page.locator(".dx-loadpanel:visible, .dx-loadpanel-content:visible").first.wait_for(state="hidden", timeout=15000)
     except Exception as le:
         print(f"Advertencia al esperar el panel de carga: {le}")
-    
-    # Es necesario un pequeño tiempo de espera para que JavaScript termine de renderizar y adjuntar eventos.
-    page.wait_for_timeout(3000)
-    
+
+    # Esperar a que el overlay/shader de DevExpress quede oculto (señal real de "render listo").
     try:
-        page.locator("text='Imprimir Factura', text='Generar Factura'").locator("visible=true").first.wait_for(state="visible", timeout=15000)
-        btn_generar_principal = page.locator("text='Generar Factura'").locator("visible=true").first
-        if btn_generar_principal.is_visible():
-            try:
-                page.locator(".dx-overlay-shader").first.wait_for(state="hidden", timeout=5000)
-            except:
-                pass
-            btn_generar_principal.click(force=True)
-    except Exception as e:
-        print(f"Advertencia al procesar Generar Factura principal: {e}")
+        page.locator(".dx-overlay-shader").first.wait_for(state="hidden", timeout=5000)
+    except:
+        pass
+
+    # PASO A: "Generar Factura" principal -> aparece "Imprimir Factura".
+    # LÓGICA FIEL AL ORIGINAL: si "Generar Factura" sigue visible se hace UN clic y se ESPERA
+    # PACIENTEMENTE a que aparezca "Imprimir Factura" (wait_for retorna apenas aparece -> rápido en
+    # el camino feliz). NO se reclica durante la generación en curso. Solo un reintento si tras una
+    # espera amplia no apareció. Bugs corregidos: locator de texto válido y variable siempre definida.
+    _t_A = time.time()
+    btn_generar_principal = page.locator("text='Generar Factura'").locator("visible=true").first
+    btn_imprimir = page.locator("text='Imprimir Factura'").first
+
+    # Settle: esperar a que el overlay/shader de DevExpress quede oculto (sale rápido si no hay) y un
+    # pad para que se adjunte el handler del botón antes del clic forzado (reemplaza el sleep de 3s).
+    try:
+        page.locator(".dx-overlay-shader").first.wait_for(state="hidden", timeout=8000)
+    except:
+        pass
+    page.wait_for_timeout(1000)
 
     try:
-        page.locator("text='Imprimir Factura'").wait_for(state="visible", timeout=8000)
+        if btn_generar_principal.is_visible():
+            btn_generar_principal.click(force=True)
+    except Exception as e:
+        print(f"Advertencia al hacer clic en 'Generar Factura' principal: {e}")
+
+    btn_imprimir_visible = False
+    try:
+        btn_imprimir.wait_for(state="visible", timeout=20000)
+        btn_imprimir_visible = True
     except Exception:
-        print("No apareció el botón 'Imprimir Factura'. Es posible que el clic anterior no se haya registrado. Reintentando...")
-        btn_generar_principal.click(force=True)
-        page.locator("text='Imprimir Factura'").wait_for(state="visible", timeout=15000)
+        print("'Imprimir Factura' no apareció aún. Reintentando clic en 'Generar Factura'...")
+        try:
+            if btn_generar_principal.is_visible():
+                btn_generar_principal.click(force=True)
+        except Exception as e:
+            print(f"No se pudo reintentar el clic en 'Generar Factura': {e}")
+        try:
+            btn_imprimir.wait_for(state="visible", timeout=20000)
+            btn_imprimir_visible = True
+        except Exception:
+            pass
+    print(f"[TIMING] Paso A (Generar->Imprimir): {time.time() - _t_A:.2f}s")
+    if not btn_imprimir_visible:
+        raise Exception("No apareció el botón 'Imprimir Factura' tras intentar 'Generar Factura'.")
         
     print("Esperando a que se carguen los datos...")
     try:
@@ -120,40 +151,43 @@ def complete_invoice_generation(page, context, search_value, phone, email):
         
     page.on("download", on_download)
     context.on("page", on_popup)
-    
-    # Es necesario un pequeño tiempo de espera para que JavaScript termine de renderizar y adjuntar eventos.
-    page.wait_for_timeout(3000)
-    
-    # Asegurar que el botón sea visible y clickeable
-    # Buscamos de manera explícita "Imprimir Factura" en lugar de un regex con "Generar" que podría traer el botón anterior
+
+    # PASO B: "Imprimir Factura" -> aparece "Descargar recibo". LÓGICA FIEL AL ORIGINAL: bucle de
+    # hasta 3 intentos, cada uno con UN clic y espera PACIENTE de "Descargar recibo" (sin reclicar a
+    # mitad de la operación). Única optimización: el settle previo al clic es por evento (overlay
+    # oculto) en vez del sleep fijo de 500ms. El wait_for_function de '$' + el fill de Teléfono/Correo
+    # ya confirmaron arriba que la UI está lista, por eso no se reañade el settle redundante previo.
+    _t_B = time.time()
     btn_imprimir = page.locator("text='Imprimir Factura'").first
     try:
         btn_imprimir.wait_for(state="visible", timeout=10000)
-    except:
+    except Exception:
         # Fallback en caso de que aún diga Generar Factura en alguna vista
         btn_imprimir = page.locator("text='Generar Factura'").nth(1)
 
-    # Esperar a que aparezca la modal de Éxito con el botón
     btn_descargar = page.locator("text='Descargar recibo'").first
-    
+
     exito_modal_visible = False
     for retry in range(3):
         print(f"Haciendo clic en el botón de factura (Intento {retry + 1})...")
         try:
-            # Asegurar hacer hover o enfocar antes del clic para evitar elementos sobrepuestos
             btn_imprimir.scroll_into_view_if_needed()
-            page.wait_for_timeout(500)
+            # Settle por evento en vez de sleep fijo de 500ms: sale de inmediato si no hay overlay.
+            try:
+                page.locator(".dx-overlay-shader").first.wait_for(state="hidden", timeout=3000)
+            except:
+                pass
             btn_imprimir.click(force=True)
         except Exception as click_err:
             print(f"Error al hacer clic en el botón de factura: {click_err}")
-        
+
         try:
-            btn_descargar.wait_for(state="visible", timeout=8000)
+            btn_descargar.wait_for(state="visible", timeout=10000)
             exito_modal_visible = True
             break
         except Exception:
             print("No apareció el botón 'Descargar recibo' aún. Reintentando...")
-    
+    print(f"[TIMING] Paso B (Imprimir->Descargar): {time.time() - _t_B:.2f}s")
     if not exito_modal_visible:
         raise Exception("No apareció el popup de éxito con el botón 'Descargar recibo' después de varios intentos.")
 
@@ -171,11 +205,14 @@ def complete_invoice_generation(page, context, search_value, phone, email):
     # 2. Hacer clic en el botón Descargar Recibo para iniciar la descarga del PDF
     btn_descargar.click()
 
-    # Optimizamos el ciclo de espera, comprobando cada 100ms en lugar de 500ms
+    # CUT 3: comprobación al INICIO del bucle (no perder el primer tick si la descarga es instantánea).
+    # El bucle es dirigido por evento (on_download/on_popup); el techo es solo tope de seguridad.
+    _t_dl = time.time()
     for _ in range(150):
-        page.wait_for_timeout(100)
         if download_obj or popup_page:
             break
+        page.wait_for_timeout(100)
+    print(f"[TIMING] Espera descarga PDF: {time.time() - _t_dl:.2f}s")
     
     descargas_dir = os.path.join(os.getcwd(), "facturas_descargadas")
     os.makedirs(descargas_dir, exist_ok=True)
@@ -239,10 +276,11 @@ def complete_invoice_generation(page, context, search_value, phone, email):
             btn_pagar.click()
         
         payment_popup = popup_info.value
-        for _ in range(20):
+        # CUT 2: granularidad 100ms (la URL real suele aparecer en ~100-300ms), techo ~5s.
+        for _ in range(50):
             if payment_popup.url and payment_popup.url != "about:blank":
                 break
-            page.wait_for_timeout(500)
+            page.wait_for_timeout(100)
         payment_url = payment_popup.url
         print(f"URL de pago en línea capturada: {payment_url}")
         payment_popup.close()
@@ -274,9 +312,10 @@ def complete_invoice_generation(page, context, search_value, phone, email):
     except Exception as pay_err:
         print(f"Advertencia: No se pudo capturar el enlace de pago en línea o generar el QR: {pay_err}")
 
+    print(f"[TIMING] TOTAL complete_invoice_generation: {time.time() - _t_fase0:.2f}s")
     return {
-        "status": "success", 
-        "message": "Factura descargada exitosamente.", 
+        "status": "success",
+        "message": "Factura descargada exitosamente.",
         "file": file_path,
         "filename": filename,
         "payment_url": payment_url,
@@ -297,21 +336,30 @@ def solve_captcha_worker(api_key, sitekey, page_url):
         }
         
         req = urllib.request.Request("https://api.capsolver.com/createTask", data=json.dumps(task_payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, timeout=20) as response:
             res = json.loads(response.read().decode('utf-8'))
             task_id = res.get("taskId")
-        
+
         token = None
-        for _ in range(24): # Máximo ~2 min
-            time.sleep(5)
+        # Capsolver nunca resuelve al instante: pequeña espera inicial (antes el primer poll
+        # esperaba 5s en seco). Luego se sondea cada 3s, esperando al FINAL del bucle para no
+        # malgastar tiempo tras detectar el token. Presupuesto: 2 + 38*3 = 116s de sleeps,
+        # cómodamente por debajo del captcha_future.result(timeout=125) que lo consume.
+        time.sleep(2)
+        for _ in range(38):
             result_payload = {"clientKey": api_key, "taskId": task_id}
             req2 = urllib.request.Request("https://api.capsolver.com/getTaskResult", data=json.dumps(result_payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
-            with urllib.request.urlopen(req2) as response2:
-                res2 = json.loads(response2.read().decode('utf-8'))
-                status = res2.get("status")
-                if status == "ready":
-                    token = res2.get("solution").get("gRecaptchaResponse")
-                    break
+            try:
+                with urllib.request.urlopen(req2, timeout=20) as response2:
+                    res2 = json.loads(response2.read().decode('utf-8'))
+                    status = res2.get("status")
+                    if status == "ready":
+                        token = res2.get("solution").get("gRecaptchaResponse")
+                        break
+            except Exception as poll_err:
+                # Un poll lento/fallido no debe matar todo el solve: reintentar en la siguiente vuelta.
+                print(f"Advertencia en poll de CAPSOLVER, reintentando: {poll_err}")
+            time.sleep(3)
         return token
     except Exception as e:
         print(f"Error en worker de CAPSOLVER: {e}")
@@ -337,6 +385,7 @@ def run_rpa_start(browser, search_type, search_value, phone, email):
 
     try:
         captcha_future = None
+        executor = None
         target_url = "https://oficinavirtual.apartado-antioquia.gov.co/Predial/Index"
         
         if api_key:
@@ -370,7 +419,7 @@ def run_rpa_start(browser, search_type, search_value, phone, email):
         # captcha
         if api_key and captcha_future:
             print("Esperando resolución concurrente del reCAPTCHA...")
-            token = captcha_future.result(timeout=120)
+            token = captcha_future.result(timeout=125)
             
             if token:
                 print("¡Captcha resuelto exitosamente por CAPSOLVER!")
@@ -404,7 +453,10 @@ def run_rpa_start(browser, search_type, search_value, phone, email):
                             }};
                         }}
                     ''')
-                    time.sleep(1)
+                    # La inyección vía page.evaluate es síncrona en Playwright sync-mode: los valores
+                    # ya quedan en el DOM/JS al retornar. Solo un margen mínimo (antes era 1s) por si un
+                    # bundle tardío de reCAPTCHA re-inicializa grecaptcha y sobreescribe el override.
+                    page.wait_for_timeout(200)
                 except Exception as e:
                     raise Exception(f"Error al inyectar el token resuelto: {e}")
             else:
@@ -414,7 +466,13 @@ def run_rpa_start(browser, search_type, search_value, phone, email):
             try:
                 recaptcha_iframe = page.frame_locator("iframe[title*='reCAPTCHA']")
                 recaptcha_iframe.locator(".recaptcha-checkbox-border").click(timeout=5000)
-                time.sleep(3)
+                # Esperar a que el checkbox quede marcado (aria-checked="true") en lugar de un sleep
+                # fijo de 3s. El atributo está en el div padre .recaptcha-checkbox, no en el -border.
+                # Si no se marca (desafío de imagen / red lenta) se continúa igual que antes.
+                try:
+                    recaptcha_iframe.locator('.recaptcha-checkbox[aria-checked="true"]').wait_for(state="visible", timeout=5000)
+                except Exception as wait_err:
+                    print("El reCAPTCHA no se marcó dentro del tiempo esperado, continuando:", wait_err)
             except Exception as e:
                 print("No se pudo interactuar con el reCAPTCHA o no apareció:", e)
         
@@ -450,7 +508,21 @@ def run_rpa_start(browser, search_type, search_value, phone, email):
             # Esperar a que las filas de datos de DevExpress estén visibles
             try:
                 page.wait_for_selector(".dx-data-row", state="visible", timeout=20000)
-                page.wait_for_timeout(1000) # Dar un pequeño margen extra tras aparecer la fila
+                # En vez de un margen fijo de 1000ms: esperar a que el conteo de filas se estabilice.
+                # DevExpress puede agregar filas de forma asíncrona tras pintar la primera; resolvemos
+                # en cuanto dos lecturas consecutivas coinciden (~200ms típico), con tope de ~3s.
+                # Protege mejor la red lenta que el sleep fijo y evita extraer una tabla incompleta.
+                try:
+                    page.locator(".dx-overlay-shader").first.wait_for(state="hidden", timeout=3000)
+                except:
+                    pass
+                prev_count = -1
+                for _ in range(30):  # máx ~3s
+                    count = page.locator(".dx-data-row").count()
+                    if count > 0 and count == prev_count:
+                        break
+                    prev_count = count
+                    page.wait_for_timeout(100)
             except Exception as e:
                 print(f"Advertencia al esperar las filas del grid (.dx-data-row): {e}")
             
@@ -517,13 +589,18 @@ def run_rpa_start(browser, search_type, search_value, phone, email):
 
     except Exception as e:
         try:
-            # page.screenshot(path="error_pantalla.png")
+            page.screenshot(path="error_pantalla.png", full_page=True)
             print("Captura de pantalla de error guardada en error_pantalla.png")
         except Exception as se:
             print(f"No se pudo guardar captura de pantalla: {se}")
         print(f"Error durante el proceso RPA: {e}")
         close_session_objects(session_data)
         return {"status": "error", "message": str(e)}
+    finally:
+        # Cerrar el executor del captcha sin bloquear (wait=False): evita fugar un hilo por
+        # cada petición. wait=False retorna de inmediato; el worker termina cuando acabe su poll.
+        if executor is not None:
+            executor.shutdown(wait=False)
 
 def run_rpa_continue(session_data, predio_index, search_value, phone, email):
     """Phase 2: Use existing browser context to click on selected row and complete generation."""
